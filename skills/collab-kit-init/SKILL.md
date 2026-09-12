@@ -53,7 +53,7 @@ disable-model-invocation: true
 
 填法：偵測到什麼寫什麼，標上實際測試項數。
 **偵測不到使用者層時不留白、也不要用內層測試填**，改在 `QUESTIONS.md` 開第一題。
-新增相依套件屬高風險，只出選項不安裝。
+新增相依套件屬高風險，開成一題不安裝——選項留到問使用者的當下再給，不寫進檔案。
 
 某一層確認過後判定不適用（例如純 CLI 專案沒有假件），寫「不適用」並寫明理由，不要留空。
 
@@ -65,7 +65,7 @@ disable-model-invocation: true
 
 | 檔案 | 來源，以及已存在時要補的 |
 |---|---|
-| `QUESTIONS.md` | `assets/QUESTIONS.md` 全文 |
+| `QUESTIONS.md` | `assets/QUESTIONS.md` 全文。**已存在時**：把不符合「問一次就答得完」的條目搬走（決策進 `ROADMAP.md`、教訓進 `SOP.md`、待辦進 `ROADMAP.md`〈待辦項目〉），已答的題刪掉，選項表刪掉 |
 | `SOP.md` | `assets/SOP.md` 全文。**已存在時逐節檢查**：常缺「退場」與「已退役」；每條開頭要有 `(日期・工具/模型版本)` |
 | `ROADMAP.md` | `assets/ROADMAP.md` 全文 |
 | `.claude/templates/session-handoff.md` | `assets/session-handoff.md` 全文 |
