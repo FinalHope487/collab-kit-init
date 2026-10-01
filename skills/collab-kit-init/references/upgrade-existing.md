@@ -56,5 +56,5 @@
 | `# 累積型檔案觸發規則` | 「需要拍板的事開成 `QUESTIONS.md` 的一題」「答完的題當場刪除」兩行 | 刪掉，〈提問機制〉已寫 |
 | `SOP.md` | 觸發條件、格式、退場寫在 `SOP.md` | `SOP.md` 只留〈目錄〉；這些移到 `SOP/README.md` |
 | `QUESTIONS.md` 開頭 | 註解裡的題目範本、「我當場刪除」等第一人稱 | 換成 `assets/QUESTIONS.md`（含「總是使用 AskUserQuestion 問，不要用純文字」） |
-| `ROADMAP.md` | 〈已拍板的決策〉〈變更紀錄〉、三欄待辦格式 | 決策搬進 `docs/decisions/`；待辦改四欄（具體細節／怎麼做／會改變什麼／做後回退代價）；開頭換成 `assets/ROADMAP.md` |
+| `ROADMAP.md` | 〈已拍板的決策〉〈變更紀錄〉、三欄待辦格式 | 決策搬進 `docs/decisions/`；`[later]`／`[parked]` 條目搬進 `ROADMAP/later.md`、`ROADMAP/parked.md`；待辦改四欄（具體細節／怎麼做／會改變什麼／做後回退代價）；開頭換成 `assets/ROADMAP.md` |
 | 決策存放 | `ROADMAP.md`〈已拍板的決策〉、`docs/decisions/index.md`、`topics/` | `docs/decisions/<日期>-<slug>.md` 一條一個檔，寫法見 `docs/decisions/README.md` |

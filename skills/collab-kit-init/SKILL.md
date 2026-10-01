@@ -1,6 +1,6 @@
 ---
 name: collab-kit-init
-description: 在目前專案初始化或升級「協作規則骨架」——把開頭句與八節規則寫進規則檔（CLAUDE.md，或 CLAUDE.md 以 @ 匯入的檔，例如 AGENTS.md）：決策分級、提問機制、工作模式、留痕與收尾、驗證：不接受目測、撰寫文件、累積型檔案觸發規則、委派邊界規格；並建立 QUESTIONS.md、SOP.md＋SOP/README.md、ROADMAP.md、docs/decisions/README.md、.claude/templates/session-handoff.md、tools/outline.py。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「升級舊版 kit」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
+description: 在目前專案初始化或升級「協作規則骨架」——把開頭句與八節規則寫進規則檔（CLAUDE.md，或 CLAUDE.md 以 @ 匯入的檔，例如 AGENTS.md）：決策分級、提問機制、工作模式、留痕與收尾、驗證：不接受目測、撰寫文件、累積型檔案觸發規則、委派邊界規格；並建立 QUESTIONS.md、SOP.md＋SOP/README.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/decisions/README.md、.claude/templates/session-handoff.md、tools/outline.py。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「升級舊版 kit」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
 disable-model-invocation: true
 ---
 
@@ -16,7 +16,7 @@ disable-model-invocation: true
 | `assets/claude-md-rules.md` | 步驟 1：要寫進規則檔的開頭句與八節規則全文（含安裝時代入的佔位字串） |
 | `assets/push-policy-pr.md`、`assets/push-policy-direct.md` | 步驟 1：推送政策兩版，腳本依 `--direct-push-main` 只代入其中一版 |
 | `references/upgrade-existing.md` | 步驟 1b：專案已有舊版 kit 時，逐條改掉會打架的舊措辭 |
-| `assets/QUESTIONS.md`、`assets/SOP.md`、`assets/SOP-README.md`、`assets/ROADMAP.md`、`assets/decisions-README.md`、`assets/session-handoff.md`、`assets/outline.py` | 步驟 3～6：腳本原樣複製進專案 |
+| `assets/QUESTIONS.md`、`assets/SOP.md`、`assets/SOP-README.md`、`assets/ROADMAP.md`、`assets/ROADMAP-later.md`、`assets/ROADMAP-parked.md`、`assets/decisions-README.md`、`assets/session-handoff.md`、`assets/outline.py` | 步驟 3～6：腳本原樣複製進專案 |
 | `assets/environment.md` | 步驟 3～6：腳本不建，你原樣複製成 `docs/environment.md` |
 
 規則全文與模板一律由 `scripts/install.sh` 複製，不要自己寫入、也不要憑記憶重打。
@@ -91,7 +91,7 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [選項]
 | `QUESTIONS.md` | `assets/QUESTIONS.md` 全文。**已存在時**：把不符合「問一次就答得完」的條目搬走（決策進 `docs/decisions/`、教訓進 `SOP/`、待辦進 `ROADMAP.md`〈待辦項目〉），已答的題刪掉，選項表刪掉 |
 | `SOP.md` | `assets/SOP.md` 全文：只有依症狀分流的〈目錄〉。**已存在時**：條目若還躺在 `SOP.md` 裡，依症狀拆進 `SOP/<症狀分類>.md`，每檔編號各自從 1 重編，並把全專案的 `SOP #N` 引用改成 `SOP[檔名]#N`；〈目錄〉每一列的「放什麼／不放什麼」兩欄都要填；觸發、格式、退場等寫法規則移到 `SOP/README.md` |
 | `SOP/README.md` | `assets/SOP-README.md` 全文：觸發條件、格式、`(日期・工具/模型版本)`、引用與編號、退場與 `SOP/已退役.md` |
-| `ROADMAP.md` | `assets/ROADMAP.md` 全文：五個標記、四欄條目格式（具體細節／怎麼做／會改變什麼／做後回退代價）、〈硬約束〉〈基線〉〈待辦項目〉。**已存在時**：決策搬進 `docs/decisions/`（一條一個檔，檔名 `YYYY-MM-DD-<slug>.md`）、外部事實搬進 `docs/environment.md`、逐輪的〈現況〉只留最新一輪改寫成〈基線〉，其餘靠 git 歷史 |
+| `ROADMAP.md` | `assets/ROADMAP.md` 全文：五個標記、四欄條目格式（具體細節／怎麼做／會改變什麼／做後回退代價）、〈硬約束〉〈基線〉〈待辦項目〉；`[later]`／`[parked]` 條目分別放 `ROADMAP/later.md`、`ROADMAP/parked.md`（腳本建這兩檔）。**已存在時**：把 `[later]`／`[parked]` 條目搬進那兩檔、決策搬進 `docs/decisions/`（一條一個檔，檔名 `YYYY-MM-DD-<slug>.md`）、外部事實搬進 `docs/environment.md`、逐輪的〈現況〉只留最新一輪改寫成〈基線〉，其餘靠 git 歷史 |
 | `docs/decisions/README.md` | `assets/decisions-README.md` 全文：一條決策一個檔、檔名 `YYYY-MM-DD-<slug>.md`、列依據與反悔成本 |
 | `docs/environment.md` | `assets/environment.md` 全文（腳本不建，你複製） |
 | `.claude/templates/session-handoff.md` | `assets/session-handoff.md` 全文 |

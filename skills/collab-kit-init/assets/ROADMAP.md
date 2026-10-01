@@ -14,6 +14,8 @@ commit 與 CI run 的 SHA 與狀態寫在〈基線〉。
 
 這五個以外的標籤不准用。
 
+`[later]` 條目寫在 `ROADMAP/later.md`，`[parked]` 寫在 `ROADMAP/parked.md`，其餘留在本檔〈待辦項目〉。狀態改了就把條目搬到對應的檔。
+
 格式如下:
 
 ### [狀態] {一句話描述}

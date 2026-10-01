@@ -29,7 +29,8 @@ usage() {
 
 規則檔：CLAUDE.md 若有單獨一行 `@<相對路徑>` 匯入，規則寫進被匯入的那個檔，CLAUDE.md 不動；
 否則寫 CLAUDE.md。規則檔逐節檢查，缺哪節附加哪節。
-QUESTIONS.md / SOP.md / SOP/README.md / ROADMAP.md / docs/decisions/README.md /
+QUESTIONS.md / SOP.md / SOP/README.md / ROADMAP.md / ROADMAP/later.md / ROADMAP/parked.md /
+docs/decisions/README.md /
 .claude/templates/session-handoff.md / tools/outline.py 缺就建。既有內容不覆蓋。
 USAGE
 }
@@ -293,6 +294,8 @@ install_file "QUESTIONS.md"        "QUESTIONS.md"
 install_file "SOP.md"              "SOP.md" "→ 只留〈目錄〉；寫法規則在 SOP/README.md，見 references/upgrade-existing.md"
 install_file "SOP-README.md"       "SOP/README.md"
 install_file "ROADMAP.md"          "ROADMAP.md"
+install_file "ROADMAP-later.md"    "ROADMAP/later.md"
+install_file "ROADMAP-parked.md"   "ROADMAP/parked.md"
 install_file "decisions-README.md" "docs/decisions/README.md"
 install_file "session-handoff.md"  ".claude/templates/session-handoff.md"
 install_file "outline.py"          "tools/outline.py"

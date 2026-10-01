@@ -13,7 +13,7 @@
 | `QUESTIONS.md` | 需要拍板的事寫這裡,不停下來等。只放「問一次就答得完」的問題,不放選項與已答的題 |
 | `SOP.md` | 只放依症狀分流的〈目錄〉,條目內文在 `SOP/<症狀分類>.md` |
 | `SOP/README.md` | SOP 寫法:觸發條件、格式、`(日期・工具/模型版本)`、引用 `SOP[檔名]#N` 與每檔各自從 1 起算的編號、退場與 `SOP/已退役.md` |
-| `ROADMAP.md` | 五個標記、四欄待辦格式(具體細節/怎麼做/會改變什麼/做後回退代價),節:〈硬約束〉〈基線〉〈待辦項目〉。決策不放這裡 |
+| `ROADMAP.md` | 五個標記、四欄待辦格式(具體細節/怎麼做/會改變什麼/做後回退代價),節:〈硬約束〉〈基線〉〈待辦項目〉。`[later]`／`[parked]` 條目放 `ROADMAP/later.md`、`ROADMAP/parked.md`。決策不放這裡 |
 | `docs/decisions/README.md` | 決策寫法:一條決策一個檔,檔名 `YYYY-MM-DD-<slug>.md`,每檔 ≤30 行,含決策/依據/反悔成本。只放問過 user 的決策 |
 | `docs/environment.md` | 外部事實(配額、版本、站點現況),每列附驗證指令與驗證日期,超過 90 天要重驗。腳本不建,需要時從 `assets/environment.md` 複製 |
 | `.claude/templates/session-handoff.md` | 跨輪交接摘要模板 |
@@ -38,6 +38,8 @@ skills/collab-kit-init/
 ├── assets/SOP.md                   │
 ├── assets/SOP-README.md            │ 原樣複製進專案的模板
 ├── assets/ROADMAP.md               │ (SOP-README.md → SOP/README.md、
+├── assets/ROADMAP-later.md         │  ROADMAP-later.md → ROADMAP/later.md、
+├── assets/ROADMAP-parked.md        │  ROADMAP-parked.md → ROADMAP/parked.md、
 ├── assets/decisions-README.md      │  decisions-README.md → docs/decisions/README.md、
 ├── assets/session-handoff.md       │  outline.py → tools/outline.py)
 ├── assets/outline.py               ┘
