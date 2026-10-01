@@ -91,11 +91,11 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [選項]
 | `QUESTIONS.md` | `assets/QUESTIONS.md` 全文。**已存在時**：把不符合「問一次就答得完」的條目搬走（決策進 `docs/decisions/`、教訓進 `SOP/`、待辦進 `ROADMAP.md`〈待辦項目〉），已答的題刪掉，選項表刪掉 |
 | `SOP.md` | `assets/SOP.md` 全文：只有依症狀分流的〈目錄〉。**已存在時**：條目若還躺在 `SOP.md` 裡，依症狀拆進 `SOP/<症狀分類>.md`，每檔編號各自從 1 重編，並把全專案的 `SOP #N` 引用改成 `SOP[檔名]#N`；〈目錄〉每一列的「放什麼／不放什麼」兩欄都要填；觸發、格式、退場等寫法規則移到 `SOP/README.md` |
 | `SOP/README.md` | `assets/SOP-README.md` 全文：觸發條件、格式、`(日期・工具/模型版本)`、引用與編號、退場與 `SOP/已退役.md` |
-| `ROADMAP.md` | `assets/ROADMAP.md` 全文：五個標記、四欄條目格式（具體細節／怎麼做／會改變什麼／做後回退代價）、〈硬約束〉〈基線〉〈待辦項目〉〈範圍〉。**已存在時**：決策搬進 `docs/decisions/`（一條一個檔，檔名 `YYYY-MM-DD-<slug>.md`）、外部事實搬進 `docs/environment.md`、逐輪的〈現況〉只留最新一輪改寫成〈基線〉，其餘靠 git 歷史 |
+| `ROADMAP.md` | `assets/ROADMAP.md` 全文：五個標記、四欄條目格式（具體細節／怎麼做／會改變什麼／做後回退代價）、〈硬約束〉〈基線〉〈待辦項目〉。**已存在時**：決策搬進 `docs/decisions/`（一條一個檔，檔名 `YYYY-MM-DD-<slug>.md`）、外部事實搬進 `docs/environment.md`、逐輪的〈現況〉只留最新一輪改寫成〈基線〉，其餘靠 git 歷史 |
 | `docs/decisions/README.md` | `assets/decisions-README.md` 全文：一條決策一個檔、檔名 `YYYY-MM-DD-<slug>.md`、列依據與反悔成本 |
 | `docs/environment.md` | `assets/environment.md` 全文（腳本不建，你複製） |
 | `.claude/templates/session-handoff.md` | `assets/session-handoff.md` 全文 |
-| `tools/outline.py` | `assets/outline.py` 原樣：列出 Python 檔各函式與類別的起訖行號，〈決策分級〉「讀超過 200 行的檔案之前」那條用它 |
+| `tools/outline.py` | `assets/outline.py` 原樣：列出原始碼（`.py`、JS/TS、C/C++）、`.css`、`.md` 各區塊的起訖行號，其他類型只印行數；〈決策分級〉「讀超過 200 行的檔案之前」那條用它 |
 
 ## 完成後回報
 
