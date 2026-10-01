@@ -1,6 +1,6 @@
 """Print where each block sits in a source or Markdown file, so a reader can open one block.
 
-usage (repo root): uv run --project server python tools/outline.py FILE [FILE...] [--min N]
+usage (repo root): python tools/outline.py FILE [FILE...] [--min N]
 
 One line per block:
     path:start-end  kind name  (N 行)
