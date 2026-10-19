@@ -57,6 +57,11 @@ bash tests/test_install.sh
 
 ## 安裝
 
-複製 `skills/collab-kit-init/` 整個目錄（含 `assets/` 與 `references/`）到目標專案的
-`.claude/skills/` 或 `skills/` 下，再手動觸發這個 skill。
-完整步驟見 [`skills/collab-kit-init/SKILL.md`](skills/collab-kit-init/SKILL.md)。
+複製 `skills/collab-kit-init/` 或 `skills/collab-kit-init-free/` 整個目錄到目標專案的
+`.claude/skills/` 或 `skills/` 下，再手動觸發該 skill。
+- 完整版步驟見 [`skills/collab-kit-init/SKILL.md`](skills/collab-kit-init/SKILL.md)。
+- 精簡免額度版（僅不可逆事項與文字規範）見 [`skills/collab-kit-init-free/SKILL.md`](skills/collab-kit-init-free/SKILL.md)，測試指令：
+  ```bash
+  bash tests/test_install_free.sh
+  ```
+
