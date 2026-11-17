@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # collab-kit-init 的安裝腳本：把 assets/ 的規則與模板寫進專案。
-# 規則檔整份換成 assets 規則全文（內容不同時舊檔留成 .bak）；其餘檔案缺就建，已存在不覆蓋。
+# kit 擁有、每次整份覆寫：規則檔（內容不同時舊檔留成 .bak）、docs/procedures/、.collab-kit-version。
+# 專案擁有、缺才建、已存在不覆蓋：其餘檔案。
 # 偵測驗證指令、搬移舊內容不在這裡做，由 agent 執行（見 SKILL.md）。
 set -euo pipefail
 
@@ -18,11 +19,12 @@ usage() {
   --project DIR   專案根目錄（預設：目前工作目錄）
   --dry-run       只印出會做什麼，不寫檔
 
-規則檔：CLAUDE.md 若有單獨一行 `@<相對路徑>` 匯入，規則寫進被匯入的那個檔，CLAUDE.md 不動；
-否則寫 CLAUDE.md。規則檔整份換成規則全文；內容不同時舊檔留成 `<規則檔>.bak`。
+規則檔：CLAUDE.md 若有單獨一行 `@<相對路徑>` 匯入，規則寫進被匯入的那個檔，CLAUDE.md 只補一行 `@STATE.md`；
+否則規則寫進 AGENTS.md，CLAUDE.md 換成 `@AGENTS.md` 與 `@STATE.md` 兩行（舊檔留成 CLAUDE.md.bak）。
+規則檔整份換成規則全文；內容不同時舊檔留成 `<規則檔>.bak`。docs/procedures/ 每次整份覆寫。
 其餘檔案缺就建，已存在不覆蓋：
   QUESTIONS.md / STATE.md / DECISIONS.md / docs/spec.md / docs/plans/README.md /
-  ROADMAP.md / ROADMAP/later.md / ROADMAP/parked.md / 
+  ROADMAP.md / ROADMAP/later.md / ROADMAP/parked.md /
   docs/project-rules.md / docs/testing.md / docs/codex-collaboration.md /
   tools/outline.py；docs/procedures/ 每次整份覆寫，並寫 .collab-kit-version
 USAGE
@@ -63,12 +65,12 @@ if [ -f "$CLAUDE_MD" ]; then
 fi
 if [ -n "$IMPORT" ]; then
   RULES_REL="$IMPORT"
-  RULES_WHY="CLAUDE.md 以 @$IMPORT 匯入；CLAUDE.md 不動"
+  RULES_WHY="CLAUDE.md 以 @$IMPORT 匯入；CLAUDE.md 只補 @STATE.md"
 else
-  RULES_REL="CLAUDE.md"
-  if [ -n "$IMPORT_NOTE" ]; then RULES_WHY="$IMPORT_NOTE"
-  elif [ -f "$CLAUDE_MD" ]; then RULES_WHY="CLAUDE.md 沒有 @ 匯入"
-  else RULES_WHY="CLAUDE.md 不存在，新建"; fi
+  RULES_REL="AGENTS.md"
+  if [ -n "$IMPORT_NOTE" ]; then RULES_WHY="$IMPORT_NOTE；CLAUDE.md 換成匯入檔"
+  elif [ -f "$CLAUDE_MD" ]; then RULES_WHY="CLAUDE.md 沒有 @ 匯入；CLAUDE.md 換成匯入檔，舊檔留成 CLAUDE.md.bak"
+  else RULES_WHY="CLAUDE.md 不存在，新建成匯入檔"; fi
 fi
 RULES_FILE="$PROJECT/$RULES_REL"
 
@@ -97,6 +99,36 @@ else
   fi
   cp "$RULES_SRC" "$RULES_FILE"
   mark_touched "$RULES_REL"
+fi
+
+# ---- CLAUDE.md：要匯入規則檔與 STATE.md，兩者才會在開工時自動載入 ----
+has_line() { tr -d '\r' < "$2" | grep -qxF -- "$1"; }
+if [ -z "$IMPORT" ]; then
+  WANT="$(printf '@AGENTS.md\n@STATE.md')"
+  if [ -f "$CLAUDE_MD" ] && [ "$(tr -d '\r' < "$CLAUDE_MD")" = "$WANT" ]; then
+    report "已是新版" "CLAUDE.md"
+  elif [ "$DRY" -eq 1 ]; then
+    report "待換新" "CLAUDE.md（改成匯入 @AGENTS.md 與 @STATE.md）"
+  else
+    if [ -f "$CLAUDE_MD" ]; then
+      cp "$CLAUDE_MD" "$CLAUDE_MD.bak"
+      report "換新" "CLAUDE.md（舊檔留成 CLAUDE.md.bak）"
+      mark_touched "CLAUDE.md.bak"
+    else
+      report "建立" "CLAUDE.md"
+    fi
+    printf '%s\n' "$WANT" > "$CLAUDE_MD"
+    mark_touched "CLAUDE.md"
+  fi
+elif has_line "@STATE.md" "$CLAUDE_MD"; then
+  report "已匯入" "CLAUDE.md 已有 @STATE.md"
+elif [ "$DRY" -eq 1 ]; then
+  report "待加一行" "CLAUDE.md（加 @STATE.md）"
+else
+  if [ -n "$(tail -c1 "$CLAUDE_MD")" ]; then printf '\n' >> "$CLAUDE_MD"; fi
+  printf '@STATE.md\n' >> "$CLAUDE_MD"
+  report "加一行" "CLAUDE.md（加 @STATE.md）"
+  mark_touched "CLAUDE.md"
 fi
 
 # ---- 其餘檔案：缺就建 ----
@@ -139,10 +171,20 @@ for p in "$ASSETS"/procedures/*.md; do
   if [ "$DRY" -eq 1 ]; then report "待覆寫" "$rel"; else mkdir -p "$PROJECT/docs/procedures"; cp "$p" "$PROJECT/$rel"; report "覆寫" "$rel"; fi
   mark_touched "$rel"
 done
-KIT_VER="$(git -C "$SKILL_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
-if [ "$DRY" -eq 0 ]; then printf "%s
-" "$KIT_VER" > "$PROJECT/.collab-kit-version"; fi
-report "版本" ".collab-kit-version = $KIT_VER"
+# 版本戳＝kit 擁有的檔（規則全文＋程序檔）的內容雜湊。不用 git 短碼：skill 被複製進專案後，git 會回報專案自己的 commit。
+KIT_VER="$(cat "$RULES_SRC" "$ASSETS"/procedures/*.md | tr -d '\r' | md5sum | cut -c1-12)"
+VER_FILE="$PROJECT/.collab-kit-version"
+OLD_VER=""
+if [ -f "$VER_FILE" ]; then OLD_VER="$(tr -d '\r\n' < "$VER_FILE")"; fi
+if [ "$OLD_VER" = "$KIT_VER" ]; then
+  report "版本" ".collab-kit-version = $KIT_VER（未變）"
+elif [ "$DRY" -eq 1 ]; then
+  report "待寫版本" ".collab-kit-version：${OLD_VER:-無} → $KIT_VER"
+else
+  printf '%s\n' "$KIT_VER" > "$VER_FILE"
+  report "版本" ".collab-kit-version：${OLD_VER:-無} → $KIT_VER"
+  mark_touched ".collab-kit-version"
+fi
 
 # ---- 回報 ----
 echo "專案: $PROJECT"
@@ -168,6 +210,6 @@ else
 fi
 echo
 echo "== 腳本不做、接下來由你做的 =="
-echo "  步驟 2：偵測本專案的驗證指令、服務埠等，寫進 docs/project-rules.md"
-echo "  步驟 3：規則檔留了 .bak 時，照 references/upgrade-existing.md 把舊檔裡本專案專屬的內容搬進 docs/project-rules.md"
-echo "  步驟 4：標「已存在」的檔案要逐項檢查缺件並補上"
+echo "  步驟 2：STATE.md 還是模板時，照已知事實填目標、契約、下一步、測試指令"
+echo "  步驟 3：偵測本專案的驗證指令、服務埠等，寫進 docs/project-rules.md"
+echo "  步驟 4：留了 .bak，或專案有舊版 kit 的檔（SOP、handoff.md、docs/decisions/、ROADMAP 基線）時，照 references/upgrade-existing.md 搬內容"

@@ -13,7 +13,7 @@
 | `ROADMAP.md` | 刪掉已完成的條目；`[later]` 搬到 `ROADMAP/later.md`，`[parked]` 搬到 `ROADMAP/parked.md` | 否 |
 | `QUESTIONS.md` | user 答過的題照 `docs/procedures/questions.md` 搬走並刪除 | 否 |
 | 做完的計畫 | 仍生效的規則搬進 `STATE.md`，計畫檔搬進 `archive/`（保留原路徑），修正所有指向它的檔案 | 部分（斷路徑） |
-| 非現行文件 | 冷啟動的 agent 做現行目標用不到、也不是常設規則的文件，搬進 `archive/`。規則與搬回方法：`archive/README.md` | 否 |
+| 非現行文件 | 冷啟動的 agent 做現行目標用不到、也不是常設規則的文件，搬進 `archive/`，保留原路徑。要搬回時用 `git mv` 放回原路徑 | 否 |
 | 重複的事實 | 同一件事寫在兩個檔：留一個家，另一處改成指過去 | 否 |
 
 機器能檢查的項目由文件檢查腳本負責（專案有的話）。腳本建立前，這兩項只在 user 要求整理時人工做。

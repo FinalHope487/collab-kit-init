@@ -22,7 +22,7 @@
 | user 做了決定，或 agent 偏離既有規格、推翻已拍板的決定 | `DECISIONS.md` 加一行：日期、決定、user 原話、反悔代價 |
 | 有項目做完或新發現 | `ROADMAP.md`：做完的刪掉，新的加上 |
 | 有新的不可逆待決問題，或 user 答了題 | 照 `docs/procedures/questions.md` |
-| 碰到會重複出現的錯誤或環境坑 | 記到 `SOP/` 對應的檔 |
+| 碰到會重複出現的錯誤或環境坑 | 記到 `docs/troubleshooting.md`（不存在就建） |
 | 任務跨多輪 | 寫交接摘要與目前進度 |
 
 沒有條件成立就不寫任何紀錄。不寫 devlog、不寫基線：`git log` 就是紀錄。

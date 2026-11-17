@@ -2,7 +2,7 @@
 
 ## Cold review
 
-Before push, review all code changes for the task in a clean session. Use the current handoff and new decision records as the review contract. Batches that only change documentation or tests are exempt.
+Before push, review all code changes for the task in a clean session. Use `docs/spec.md`, the plan for the task in `docs/plans/`, and the new lines in `DECISIONS.md` as the review contract. Batches that only change documentation or tests are exempt.
 
 Use ChatGPT first, then Codex, then a read-only Sonnet subagent if the other reviewers are unavailable. Use adversarial review for changes to public contracts, data formats, module boundaries, data flow, or documented design decisions.
 

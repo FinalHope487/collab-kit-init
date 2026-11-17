@@ -2,7 +2,7 @@
 
 ## Test commands
 
-Use the project commands in `docs/project-rules.md`. Record the exact command and its output. Keep measured test counts in the baseline in `ROADMAP.md`.
+Use the project commands in `docs/project-rules.md`. Record the exact command and its output. Put measured test counts in the commit message.
 
 ## Test layers
 

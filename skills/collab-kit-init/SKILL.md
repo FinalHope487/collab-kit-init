@@ -1,23 +1,34 @@
 ---
 name: collab-kit-init
-description: 在目前專案初始化或升級「協作規則骨架」——把規則全文整份寫進規則檔（CLAUDE.md，或 CLAUDE.md 以 @ 匯入的檔，例如 AGENTS.md），並建立規則引用到的每個檔：QUESTIONS.md、NOTES.md、SOP.md＋SOP/README.md＋SOP/已退役.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/decisions/README.md、docs/project-rules.md、docs/testing.md、docs/codex-collaboration.md、.claude/templates/session-handoff.md、handoff.md、tools/outline.py、claude-decisions.json、DECISIONS.jsonl。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「升級舊版 kit」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
+description: 在目前專案初始化或升級「協作規則骨架」——把通用規則整份寫進規則檔（AGENTS.md，或 CLAUDE.md 以 @ 匯入的檔），把條件成立才讀的程序檔寫進 docs/procedures/，並建立專案自己維護的檔：STATE.md、DECISIONS.md、QUESTIONS.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/spec.md、docs/plans/README.md、docs/project-rules.md、docs/testing.md、docs/codex-collaboration.md、tools/outline.py。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「升級舊版 kit」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
 disable-model-invocation: true
 ---
 
 # Collab Kit Init
+
+## 誰擁有哪個檔
+
+| 擁有者 | 檔案 | 安裝與升級時 |
+|---|---|---|
+| kit | 規則檔（`AGENTS.md`）、`docs/procedures/*.md`、`.collab-kit-version` | 每次整份覆寫。規則檔內容不同時舊檔留成 `.bak`。專案不改這些檔 |
+| 專案 | `STATE.md`、`DECISIONS.md`、`QUESTIONS.md`、`ROADMAP.md`、`ROADMAP/`、`docs/spec.md`、`docs/plans/`、`docs/project-rules.md`、`docs/testing.md`、`docs/codex-collaboration.md`、`tools/outline.py` | 缺才建，已存在不覆蓋 |
+| 專案 | `CLAUDE.md` | 只保證它匯入規則檔與 `STATE.md` |
+
+專案專屬的規則寫進 `docs/project-rules.md`，不寫進規則檔或 `docs/procedures/`：那兩處下次升級會被覆寫。
 
 ## 這個 skill 的資源
 
 | 檔案 | 用途 |
 |---|---|
 | `scripts/install.sh` | 實際寫檔的腳本。跑它，不要自己一個一個複製 |
-| `assets/claude-md-rules.md` | 規則全文，整份寫進規則檔；不含任何專案專屬內容 |
-| `assets/project-rules.md` | `docs/project-rules.md` 的模板：只有開頭註解寫明放什麼、不放什麼 |
-| `assets/testing.md` | `docs/testing.md` 的通用模板：測試入口、分層、執行時機及推送前驗證 |
-| `assets/codex-collaboration.md` | `docs/codex-collaboration.md` 的通用模板：冷審查、救援、授權、額度與備援 |
-| `assets/` 其餘檔案 | 腳本原樣複製進專案的模板 |
+| `assets/claude-md-rules.md` | 規則全文：不隨專案進度改變的規則，加一張程序觸發表 |
+| `assets/procedures/` | 六個程序檔：提問、驗證、改資料格式、委派、收尾與推送、雜務 |
+| `assets/STATE.md` | 專案現況的模板：目標、生效中的契約、下一步、停損訊號、檔案地圖、測試指令 |
+| `assets/DECISIONS.md` | 決策表的模板：一個決定一行 |
+| `assets/spec.md`、`assets/plans-README.md` | `docs/spec.md` 與 `docs/plans/README.md` 的模板 |
+| `assets/project-rules.md`、`assets/testing.md`、`assets/codex-collaboration.md` | 專案自己填值的模板 |
 | `assets/environment.md` | 腳本不建；專案需要記外部事實時手動複製成 `docs/environment.md` |
-| `references/upgrade-existing.md` | 步驟 3：規則檔留了 `.bak`、或專案已有舊版 kit 檔案時用 |
+| `references/upgrade-existing.md` | 步驟 4：專案已有舊版 kit 檔案時用 |
 
 規則全文與模板一律由 `scripts/install.sh` 複製，不要自己寫入、也不要憑記憶重打。
 
@@ -27,13 +38,21 @@ disable-model-invocation: true
 bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-run]
 ```
 
-- **規則檔**＝`CLAUDE.md` 裡有單獨一行 `@<相對路徑>` 匯入（只看一層）時，被匯入的那個檔；沒有就是 `CLAUDE.md`。
-  有匯入時 `CLAUDE.md` 不動
-- 規則檔整份換成 `assets/claude-md-rules.md`。內容不同時，舊檔留成 `<規則檔>.bak`
-- 其餘檔案缺就建，已存在不覆蓋
+- `CLAUDE.md` 有單獨一行 `@<相對路徑>` 匯入（只看一層）時，規則寫進被匯入的那個檔，`CLAUDE.md` 只補一行 `@STATE.md`
+- 否則規則寫進 `AGENTS.md`，`CLAUDE.md` 換成 `@AGENTS.md` 與 `@STATE.md` 兩行，舊檔留成 `CLAUDE.md.bak`
+- `.collab-kit-version` 是規則全文加程序檔的內容雜湊。腳本回報印出舊值與新值
 - `--dry-run` 只印出會做什麼
 
-## 步驟 2：填 `docs/project-rules.md`
+## 步驟 2：填 `STATE.md`
+
+這個檔還是模板（含 `<` 開頭的佔位字）時，照已知事實填：
+
+- **目標**：從 README、`docs/spec.md`、user 在對話中的說法取得。取不到就在 `QUESTIONS.md` 開一題，不猜
+- **生效中的契約**：只寫現在綁住工作的約束。沒有就留空表
+- **下一步**、**測試**：填得出來才填
+- 上限 6 KiB。不寫沿革、不寫測試數字
+
+## 步驟 3：填 `docs/project-rules.md`
 
 這個檔只有開頭註解時，唯讀偵測後寫進去：
 
@@ -44,17 +63,22 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 - **專案專屬工具**：例如 `tools/outline.py` 在本專案的執行方式
 
 偵測到什麼寫什麼。偵測不到 user 層時不用內層測試填，在 `QUESTIONS.md` 開一題。
-確認不適用的層寫「不適用」加理由。測試數字寫進 `ROADMAP.md`〈基線〉，不寫這裡。
+確認不適用的層寫「不適用」加理由。測試數字不寫進任何檔，寫在 commit message。
 需要新增相依套件時只開題，不安裝。
 
-## 步驟 3：搬舊內容
+## 步驟 4：搬舊內容
 
-規則檔留了 `.bak`，或腳本標「已存在」的檔案是舊版 kit 格式時，照 `references/upgrade-existing.md` 處理。
+出現下列任一情況時，照 `references/upgrade-existing.md` 處理：
+
+- 規則檔或 `CLAUDE.md` 留了 `.bak`
+- 專案有舊版 kit 的檔：`SOP.md`、`SOP/`、`NOTES.md`、`handoff.md`、`docs/decisions/`、`claude-decisions.json`、`DECISIONS.jsonl`
+- `ROADMAP.md` 有〈基線〉或〈硬約束〉一節
 
 ## 完成後回報
 
 - 規則檔是哪一個，有沒有留 `.bak`
-- 哪些新建、哪些已存在
-- 步驟 2 各項偵測到什麼，有沒有開成 `QUESTIONS.md` 的題
-- 步驟 3 搬了什麼
-- **建立或修改的檔案裡，有哪些命中 `.gitignore`**（`.claude/` 常常整個被忽略）
+- 版本戳的舊值與新值
+- 哪些新建、哪些已存在、哪些被覆寫
+- 步驟 2、3 各項填了什麼，有沒有開成 `QUESTIONS.md` 的題
+- 步驟 4 搬了什麼、刪了什麼
+- **建立或修改的檔案裡，有哪些命中 `.gitignore`**
