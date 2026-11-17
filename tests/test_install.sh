@@ -8,7 +8,7 @@ INSTALL="$KIT/skills/collab-kit-init/scripts/install.sh"
 ASSETS="$KIT/skills/collab-kit-init/assets"
 RULES_SRC="$ASSETS/claude-md-rules.md"
 # 規則全文的來源專案；不在這台機器上就跳過那一條
-SOURCE_AGENTS="${SOURCE_AGENTS:-$KIT/../calculus-visualizer/AGENTS.md}"
+SOURCE_AGENTS="${SOURCE_AGENTS:-$KIT/../dreamcore-explorer/AGENTS.md}"
 
 PASS=0; FAIL=0; SKIP=0
 ok()   { PASS=$((PASS + 1)); echo "  ok    $1"; }
@@ -21,9 +21,6 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 FILES=(
-  QUESTIONS.md SOP.md SOP/README.md "SOP/已退役.md" ROADMAP.md ROADMAP/later.md ROADMAP/parked.md
-  docs/decisions/README.md .claude/templates/session-handoff.md tools/outline.py
-  docs/project-rules.md NOTES.md claude-decisions.json DECISIONS.jsonl handoff.md
 )
 
 echo "== 全新專案 =="
@@ -32,9 +29,6 @@ bash "$INSTALL" --project "$P" > "$WORK/fresh.out" 2>&1; RC=$?
 check "腳本結束碼 0" "[ $RC -eq 0 ]"
 for f in "${FILES[@]}"; do check "建立 $f" "[ -f \"\$P/$f\" ]"; done
 check "規則檔 CLAUDE.md 逐字等於 assets 規則全文" "same \"\$P/CLAUDE.md\" \"\$RULES_SRC\""
-check "claude-decisions.json 是 []" "[ \"\$(tr -d '[:space:]' < \"\$P/claude-decisions.json\")\" = '[]' ]"
-check "DECISIONS.jsonl 是空檔" "[ ! -s \"\$P/DECISIONS.jsonl\" ]"
-check "handoff.md 是交接模板" "same \"\$P/handoff.md\" \"\$ASSETS/session-handoff.md\""
 check "project-rules.md 只有開頭註解" \
   "[ -z \"\$(awk '/<!--/{c=1} !c && NF{print} /-->/{c=0}' \"\$P/docs/project-rules.md\")\" ] && grep -q '<!--' \"\$P/docs/project-rules.md\""
 

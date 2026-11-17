@@ -21,11 +21,10 @@ usage() {
 規則檔：CLAUDE.md 若有單獨一行 `@<相對路徑>` 匯入，規則寫進被匯入的那個檔，CLAUDE.md 不動；
 否則寫 CLAUDE.md。規則檔整份換成規則全文；內容不同時舊檔留成 `<規則檔>.bak`。
 其餘檔案缺就建，已存在不覆蓋：
-  QUESTIONS.md / NOTES.md / SOP.md / SOP/README.md / SOP/已退役.md /
-  ROADMAP.md / ROADMAP/later.md / ROADMAP/parked.md / docs/decisions/README.md /
+  QUESTIONS.md / STATE.md / DECISIONS.md / docs/spec.md / docs/plans/README.md /
+  ROADMAP.md / ROADMAP/later.md / ROADMAP/parked.md / 
   docs/project-rules.md / docs/testing.md / docs/codex-collaboration.md /
-  .claude/templates/session-handoff.md / handoff.md /
-  tools/outline.py / claude-decisions.json / DECISIONS.jsonl
+  tools/outline.py；docs/procedures/ 每次整份覆寫，並寫 .collab-kit-version
 USAGE
 }
 
@@ -122,22 +121,28 @@ install_file() {  # $1=asset 檔名  $2=專案相對路徑
 }
 
 install_file "QUESTIONS.md"          "QUESTIONS.md"
-install_file "NOTES.md"              "NOTES.md"
-install_file "SOP.md"                "SOP.md"
-install_file "SOP-README.md"         "SOP/README.md"
-install_file "SOP-retired.md"        "SOP/已退役.md"
 install_file "ROADMAP.md"            "ROADMAP.md"
 install_file "ROADMAP-later.md"      "ROADMAP/later.md"
 install_file "ROADMAP-parked.md"     "ROADMAP/parked.md"
-install_file "decisions-README.md"   "docs/decisions/README.md"
+install_file "DECISIONS.md"         "DECISIONS.md"
+install_file "STATE.md"             "STATE.md"
+install_file "spec.md"              "docs/spec.md"
+install_file "plans-README.md"      "docs/plans/README.md"
 install_file "project-rules.md"      "docs/project-rules.md"
 install_file "testing.md"            "docs/testing.md"
 install_file "codex-collaboration.md" "docs/codex-collaboration.md"
-install_file "session-handoff.md"    ".claude/templates/session-handoff.md"
-install_file "session-handoff.md"    "handoff.md"
 install_file "outline.py"            "tools/outline.py"
-install_file "claude-decisions.json" "claude-decisions.json"
-install_file "DECISIONS.jsonl"       "DECISIONS.jsonl"
+
+# ---- kit 擁有的程序檔：每次整份覆寫，並寫版本戳 ----
+for p in "$ASSETS"/procedures/*.md; do
+  rel="docs/procedures/$(basename "$p")"
+  if [ "$DRY" -eq 1 ]; then report "待覆寫" "$rel"; else mkdir -p "$PROJECT/docs/procedures"; cp "$p" "$PROJECT/$rel"; report "覆寫" "$rel"; fi
+  mark_touched "$rel"
+done
+KIT_VER="$(git -C "$SKILL_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+if [ "$DRY" -eq 0 ]; then printf "%s
+" "$KIT_VER" > "$PROJECT/.collab-kit-version"; fi
+report "版本" ".collab-kit-version = $KIT_VER"
 
 # ---- 回報 ----
 echo "專案: $PROJECT"
