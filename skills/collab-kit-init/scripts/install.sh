@@ -23,7 +23,8 @@ usage() {
 其餘檔案缺就建，已存在不覆蓋：
   QUESTIONS.md / NOTES.md / SOP.md / SOP/README.md / SOP/已退役.md /
   ROADMAP.md / ROADMAP/later.md / ROADMAP/parked.md / docs/decisions/README.md /
-  docs/project-rules.md / .claude/templates/session-handoff.md / handoff.md /
+  docs/project-rules.md / docs/testing.md / docs/codex-collaboration.md /
+  .claude/templates/session-handoff.md / handoff.md /
   tools/outline.py / claude-decisions.json / DECISIONS.jsonl
 USAGE
 }
@@ -130,6 +131,8 @@ install_file "ROADMAP-later.md"      "ROADMAP/later.md"
 install_file "ROADMAP-parked.md"     "ROADMAP/parked.md"
 install_file "decisions-README.md"   "docs/decisions/README.md"
 install_file "project-rules.md"      "docs/project-rules.md"
+install_file "testing.md"            "docs/testing.md"
+install_file "codex-collaboration.md" "docs/codex-collaboration.md"
 install_file "session-handoff.md"    ".claude/templates/session-handoff.md"
 install_file "session-handoff.md"    "handoff.md"
 install_file "outline.py"            "tools/outline.py"

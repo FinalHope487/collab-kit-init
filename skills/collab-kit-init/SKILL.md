@@ -1,6 +1,6 @@
 ---
 name: collab-kit-init
-description: 在目前專案初始化或升級「協作規則骨架」——把規則全文整份寫進規則檔（CLAUDE.md，或 CLAUDE.md 以 @ 匯入的檔，例如 AGENTS.md），並建立規則引用到的每個檔：QUESTIONS.md、NOTES.md、SOP.md＋SOP/README.md＋SOP/已退役.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/decisions/README.md、docs/project-rules.md、.claude/templates/session-handoff.md、handoff.md、tools/outline.py、claude-decisions.json、DECISIONS.jsonl。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「升級舊版 kit」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
+description: 在目前專案初始化或升級「協作規則骨架」——把規則全文整份寫進規則檔（CLAUDE.md，或 CLAUDE.md 以 @ 匯入的檔，例如 AGENTS.md），並建立規則引用到的每個檔：QUESTIONS.md、NOTES.md、SOP.md＋SOP/README.md＋SOP/已退役.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/decisions/README.md、docs/project-rules.md、docs/testing.md、docs/codex-collaboration.md、.claude/templates/session-handoff.md、handoff.md、tools/outline.py、claude-decisions.json、DECISIONS.jsonl。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「升級舊版 kit」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
 disable-model-invocation: true
 ---
 
@@ -13,6 +13,8 @@ disable-model-invocation: true
 | `scripts/install.sh` | 實際寫檔的腳本。跑它，不要自己一個一個複製 |
 | `assets/claude-md-rules.md` | 規則全文，整份寫進規則檔；不含任何專案專屬內容 |
 | `assets/project-rules.md` | `docs/project-rules.md` 的模板：只有開頭註解寫明放什麼、不放什麼 |
+| `assets/testing.md` | `docs/testing.md` 的通用模板：測試入口、分層、執行時機及推送前驗證 |
+| `assets/codex-collaboration.md` | `docs/codex-collaboration.md` 的通用模板：冷審查、救援、授權、額度與備援 |
 | `assets/` 其餘檔案 | 腳本原樣複製進專案的模板 |
 | `assets/environment.md` | 腳本不建；專案需要記外部事實時手動複製成 `docs/environment.md` |
 | `references/upgrade-existing.md` | 步驟 3：規則檔留了 `.bak`、或專案已有舊版 kit 檔案時用 |
