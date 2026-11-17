@@ -1,17 +1,17 @@
-# Test Policy
+# 測試政策
 
-## Test commands
+## 測試指令
 
-Use the project commands in `docs/project-rules.md`. Record the exact command and its output. Put measured test counts in the commit message.
+用 `docs/project-rules.md` 裡的專案指令。記下實際執行的指令與它的輸出。量到的測試數量寫進 commit message。
 
-## Test layers
+## 測試分層
 
-- Use fast tests for public contracts and failures that changes in shared code can cause.
-- Use user-level tests to check affected behavior through the actual entry point. Record which dependencies are real and which are substitutes.
-- Use focused acceptance checks for behavior, visuals, or performance that the fast tests cannot prove. Run an affected slow check before acceptance. Add a permanent test when it protects a contract or prevents a regression.
+- 快速測試：驗公開契約，以及共用程式碼改動可能造成的失敗。
+- 使用者層級的測試：從實際入口檢查受影響的行為。記下哪些相依是真的、哪些是替身。
+- 聚焦的驗收檢查：用在快速測試證明不了的行為、畫面或效能。受影響的慢速檢查要在驗收前跑過。它若能保護一個契約或防止退化，就加成常駐測試。
 
-Record each layer's official command, scope, run trigger, and time limit in the project test policy when these values are known. Follow the general verification rule for scope that a project policy does not cover.
+每一層的正式指令、範圍、何時要跑、時間上限，知道之後記進專案的測試政策。專案政策沒涵蓋的範圍，照通用的驗證規則。
 
-## Before push
+## push 之前
 
-Run the tests affected by the change. For shared core code, run the complete set for the affected scope. Give the reason when the change requires the entire project suite. The evidence must cover the final source state. Resolve required failures before push. Record the command, result, elapsed time, and any required check that did not run.
+跑受這次改動影響的測試。改到共用核心程式碼時，跑受影響範圍的整套。改動需要跑整個專案的全套時，寫出理由。證據必須對應最終的原始碼狀態。必要的失敗在 push 前解決。記下指令、結果、花費時間，以及任何該跑而沒跑的檢查。

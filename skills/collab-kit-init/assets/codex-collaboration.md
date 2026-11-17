@@ -1,20 +1,20 @@
-# ChatGPT and Codex Collaboration
+# ChatGPT 與 Codex 協作
 
-## Cold review
+## 冷審查
 
-Before push, review all code changes for the task in a clean session. Use `docs/spec.md`, the plan for the task in `docs/plans/`, and the new lines in `DECISIONS.md` as the review contract. Batches that only change documentation or tests are exempt.
+push 之前，在乾淨的 session 審這個任務的全部程式碼改動。審查的合約是 `docs/spec.md`、`docs/plans/` 裡這個任務的計畫，以及 `DECISIONS.md` 新增的行。只動文件或測試的批次不審。
 
-Use ChatGPT first, then Codex, then a read-only Sonnet subagent if the other reviewers are unavailable. Use adversarial review for changes to public contracts, data formats, module boundaries, data flow, or documented design decisions.
+審查者的順序：先 ChatGPT，再 Codex；兩者都不可用時才用唯讀的 Sonnet subagent。改動涉及公開契約、資料格式、模組邊界、資料流或已記錄的設計決策時，用對抗式審查。
 
-Check each finding against the code. Give file and line evidence when a finding is incorrect. For a confirmed defect, write a test that reproduces it before the fix. Review the updated diff in a new clean session until the reviewer finds no issue that directly blocks further development.
+每一條審查意見都對照程式碼確認。意見不成立時，附檔案與行號當證據。確認是缺陷的，先寫出能重現它的測試再修。修完的 diff 在新的乾淨 session 再審，直到審查者找不到會直接阻擋後續開發的問題。
 
 ## 名詞定義
 
-- A blocking finding breaks an approved contract for a supported input, causes public entry points to disagree, loses or overwrites data, or requires a public interface change to complete approved follow-up work. Cite the contract or input and identify the affected work.
-- A suggestion does not meet the blocking criteria. Add it to the backlog in `ROADMAP.md`.
+- 阻擋後續開發的意見：對支援的輸入破壞了已核准的契約、讓公開入口彼此不一致、遺失或覆寫資料，或必須改公開介面才能完成已核准的後續工作。要指出是哪個契約或輸入，以及受影響的是哪項工作。
+- 建議項：不符合上述阻擋條件的意見。記進 `ROADMAP.md` 的待辦。
 
-## Rescue and limits
+## Rescue 與額度
 
-Use Codex rescue for independent work with separate file ownership. Give it the five fields from the delegation rules. Check the result before reporting it. If rescue is unavailable, do the work in the main session.
+各自擁有不同檔案的獨立工作，才交給 Codex rescue。交付時給委派規則要求的五項。先檢查結果再回報。rescue 不可用時，在主 session 做。
 
-Use paid capacity only within the user's actual authorization. Record the approved tools, operations, and limits for this project. Report the number and purpose of Codex calls. Use the next review option if a tool is missing, unsigned in, over quota, or below the project's minimum remaining quota. For an error or timeout, check quota and retry once if quota permits. Report the fallback and its cause.
+付費額度只在 user 實際授權的範圍內使用。記下這個專案核准的工具、操作與上限。回報 Codex 的呼叫次數與用途。工具不存在、未登入、額度用完，或低於專案設定的最低剩餘額度時，改用下一個審查選項。遇到錯誤或逾時：先查額度，額度允許就重試一次。回報改用了哪個備援以及原因。

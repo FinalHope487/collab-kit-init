@@ -6,19 +6,11 @@
 
 - kit repo 已是整合版：規則檔只放不隨進度改變的規則，專案現況在 `STATE.md`，決策在 `DECISIONS.md`（一個決定一行），程序在 `docs/procedures/`（條件成立才讀）。
 - 測試：`bash tests/test_install.sh`，52 條全過。
-- **沒有 push**。本機 `main` 領先 `origin/main`。
+- 已 push（2026-11-17），本機與 `origin/main` 一致。已安裝的 `~/.claude/skills/collab-kit-init` 已換成 repo 的版本，舊版備份在 `~/.claude/skills-backup/collab-kit-init-2026-11-17`。
+- **安裝腳本的改動還沒經過冷審查。** 對第一個專案正式重裝之前，先用 ChatGPT 審一輪（user 2026-11-17 決定）。在那之前只跑 `--dry-run`。
 - **沒有任何專案重裝過**。整合版只在測試的暫存目錄裡跑過。
 
 ## kit 本身
-
-### 1. 已安裝的副本還是舊分岔
-
-`~/.claude/skills/collab-kit-init` 是 11-15 15:58 改過的另一個版本（有 `handoff.md`、`docs/decisions/README.md`，沒有 `STATE.md` 與 `docs/procedures/`）。你在任何專案觸發這個 skill，跑的是那一份，不是 repo。
-
-- 要做：用 repo 的 `skills/collab-kit-init/` 整個取代它。那個目錄裡還有 `SKILL.md.pre-rewrite.bak`、`claude-md-rules.md.bak` 和一個 `.git`，取代前先確認裡面沒有你還要的東西。
-- 為什麼沒做：那是你的使用者設定，不在這次授權範圍。
-- 那一版獨有、已合進 repo 的：`docs/spec.md`、`docs/plans/README.md`、決策註明決策者。
-- 那一版獨有、照你的決定沒有合的：「會阻塞的工作開背景任務」「冷啟動 agent 讀入超過 100000 token 要先問」。
 
 ### 2. 還沒讓全新的 agent 用這套結構開工過
 
@@ -40,10 +32,6 @@
 每個專案裝完會有 `.collab-kit-version`（規則全文加程序檔的內容雜湊）。現在要比對只能一個一個看。
 
 - 要做：一支腳本，給一串專案路徑，印出每個專案的版本戳與 kit 現在的值是否相同。
-
-### 5. 兩個模板還是英文受控句式
-
-`assets/testing.md` 與 `assets/codex-collaboration.md` 是你 11-15 用 ASD-STE100 寫的。新規則是「你會讀的檔用中文自然語言」。這兩個檔你會讀也會改，但我只修了過期的指標，沒有改寫。`codex-collaboration.md` 還有一個中文標題〈名詞定義〉夾在英文裡，因為規則檔用這個名字指它。
 
 ### 6. 冷審查的深度沒有動
 
