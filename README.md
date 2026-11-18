@@ -20,7 +20,7 @@ kit 擁有，每次安裝整份覆寫：
 
 | 檔案 | 作用 |
 |---|---|
-| 規則檔 | `CLAUDE.md` 以單獨一行 `@<相對路徑>` 匯入的檔；沒有匯入就是 `AGENTS.md`。內容是 `assets/claude-md-rules.md` 全文。內容不同時舊檔留成 `.bak` |
+| 規則檔 | 一律是 `AGENTS.md`，只讀 `AGENTS.md` 的 agent 也讀得到。內容是 `assets/claude-md-rules.md` 全文。內容不同時舊檔留成 `.bak` |
 | `docs/procedures/` | `questions.md`、`verification.md`、`data-format.md`、`delegation.md`、`close-round.md`、`chores.md` |
 | `.collab-kit-version` | 規則全文加程序檔的內容雜湊（12 位）。兩個專案的值相同，代表裝的是同一版 |
 
@@ -28,7 +28,7 @@ kit 擁有，每次安裝整份覆寫：
 
 | 檔案 | 作用 |
 |---|---|
-| `CLAUDE.md` | 匯入規則檔與 `STATE.md`。已存在且有匯入時只補一行 `@STATE.md` |
+| `CLAUDE.md` | 匯入 `AGENTS.md` 與 `STATE.md`。已有 `@` 匯入時保留原內容，只補缺的行 |
 | `STATE.md` | 目標、生效中的契約、下一步、停損訊號、檔案地圖、測試指令。上限 6 KiB |
 | `DECISIONS.md` | 一個決定一行：日期、決定、決策者與 user 原話、反悔代價、釘住它的測試 |
 | `QUESTIONS.md` | 需要拍板的事寫這裡，不停下來等。只放「問一次就答得完」的問題 |

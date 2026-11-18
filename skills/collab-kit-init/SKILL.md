@@ -1,6 +1,6 @@
 ---
 name: collab-kit-init
-description: 在目前專案初始化或更新「協作規則骨架」——把通用規則整份寫進規則檔（AGENTS.md，或 CLAUDE.md 以 @ 匯入的檔），把條件成立才讀的程序檔寫進 docs/procedures/，並建立專案自己維護的檔：STATE.md、DECISIONS.md、QUESTIONS.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/spec.md、docs/plans/README.md、docs/project-rules.md、docs/testing.md、docs/cold-review.md、tools/outline.py。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「更新 kit 版本」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
+description: 在目前專案初始化或更新「協作規則骨架」——把通用規則整份寫進 AGENTS.md，把條件成立才讀的程序檔寫進 docs/procedures/，並建立專案自己維護的檔：STATE.md、DECISIONS.md、QUESTIONS.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/spec.md、docs/plans/README.md、docs/project-rules.md、docs/testing.md、docs/cold-review.md、tools/outline.py。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「更新 kit 版本」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
 disable-model-invocation: true
 ---
 
@@ -12,7 +12,7 @@ disable-model-invocation: true
 |---|---|---|
 | kit | 規則檔（`AGENTS.md`）、`docs/procedures/*.md`、`.collab-kit-version` | 每次整份覆寫。規則檔內容不同時舊檔留成 `.bak`。專案不改這些檔 |
 | 專案 | `STATE.md`、`DECISIONS.md`、`QUESTIONS.md`、`ROADMAP.md`、`ROADMAP/`、`docs/spec.md`、`docs/plans/`、`docs/project-rules.md`、`docs/testing.md`、`docs/cold-review.md`、`tools/outline.py` | 缺才建，已存在不覆蓋 |
-| 專案 | `CLAUDE.md` | 只保證它匯入規則檔與 `STATE.md` |
+| 專案 | `CLAUDE.md` | 只保證它匯入 `AGENTS.md` 與 `STATE.md`，其餘內容不動 |
 
 專案專屬的規則寫進 `docs/project-rules.md`，不寫進規則檔或 `docs/procedures/`：那兩處下次升級會被覆寫。
 
@@ -37,8 +37,10 @@ disable-model-invocation: true
 bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-run]
 ```
 
-- `CLAUDE.md` 有單獨一行 `@<相對路徑>` 匯入（只看一層）時，規則寫進被匯入的那個檔，`CLAUDE.md` 只補一行 `@STATE.md`
-- 否則規則寫進 `AGENTS.md`，`CLAUDE.md` 換成 `@AGENTS.md` 與 `@STATE.md` 兩行，舊檔留成 `CLAUDE.md.bak`
+- 規則一律寫進 `AGENTS.md`，內容不同時舊檔留成 `AGENTS.md.bak`
+- `CLAUDE.md` 不存在：新建成 `@AGENTS.md` 與 `@STATE.md` 兩行
+- `CLAUDE.md` 已有單獨一行 `@<路徑>` 匯入：保留原內容，只補缺的 `@AGENTS.md`、`@STATE.md`。原本匯入的其他檔不動；其中若有舊版規則全文，回報會提醒手動移除
+- `CLAUDE.md` 沒有任何 `@` 匯入（規則直接寫在裡面）：換成兩行匯入，舊檔留成 `CLAUDE.md.bak`
 - `.collab-kit-version` 是規則全文加程序檔的內容雜湊。腳本回報印出舊值與新值
 - `--dry-run` 只印出會做什麼
 

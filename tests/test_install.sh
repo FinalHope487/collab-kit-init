@@ -93,6 +93,22 @@ check "舊 CLAUDE.md 留在 CLAUDE.md.bak" "grep -q '直接寫在 CLAUDE.md' \"\
 check "CLAUDE.md 換成兩行匯入" "claude_is_two_imports \"\$P\""
 check "規則寫進 AGENTS.md" "same \"\$P/AGENTS.md\" \"\$RULES_SRC\""
 
+echo "== CLAUDE.md 另外匯入其他檔（團隊規則、個人檔） =="
+P="$WORK/other"; mkdir -p "$P/docs"; git -C "$P" init -q
+printf '# 團隊規則\n\n團隊自己的內容\n' > "$P/docs/team-rules.md"
+printf '前言\n@docs/team-rules.md\n@~/personal.md\n' > "$P/CLAUDE.md"
+cp "$P/docs/team-rules.md" "$WORK/team.orig"
+bash "$INSTALL" --project "$P" > "$WORK/other.out" 2>&1
+check "規則一律寫進 AGENTS.md" "same \"\$P/AGENTS.md\" \"\$RULES_SRC\""
+check "被匯入的團隊規則檔原封不動" "cmp -s \"\$P/docs/team-rules.md\" \"\$WORK/team.orig\""
+check "CLAUDE.md 保留原有匯入" "grep -qx '@docs/team-rules.md' \"\$P/CLAUDE.md\" && grep -qx '@~/personal.md' \"\$P/CLAUDE.md\""
+check "CLAUDE.md 補上 @AGENTS.md 與 @STATE.md" "grep -qx '@AGENTS.md' \"\$P/CLAUDE.md\" && grep -qx '@STATE.md' \"\$P/CLAUDE.md\""
+check "CLAUDE.md 不產生 .bak（內容沒被取代）" "[ ! -e \"\$P/CLAUDE.md.bak\" ]"
+check "回報提醒另外匯入的檔" "grep -q 'docs/team-rules.md' \"\$WORK/other.out\" && grep -q '手動移除' \"\$WORK/other.out\""
+cp "$P/CLAUDE.md" "$WORK/other.claude"
+bash "$INSTALL" --project "$P" > "$WORK/other2.out" 2>&1
+check "重跑不再往 CLAUDE.md 加行" "cmp -s \"\$P/CLAUDE.md\" \"\$WORK/other.claude\""
+
 echo "== --dry-run =="
 P="$WORK/dry"; mkdir -p "$P"
 bash "$INSTALL" --project "$P" --dry-run > "$WORK/dry.out" 2>&1

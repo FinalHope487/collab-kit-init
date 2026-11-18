@@ -19,9 +19,10 @@ usage() {
   --project DIR   專案根目錄（預設：目前工作目錄）
   --dry-run       只印出會做什麼，不寫檔
 
-規則檔：CLAUDE.md 若有單獨一行 `@<相對路徑>` 匯入，規則寫進被匯入的那個檔，CLAUDE.md 只補一行 `@STATE.md`；
-否則規則寫進 AGENTS.md，CLAUDE.md 換成 `@AGENTS.md` 與 `@STATE.md` 兩行（舊檔留成 CLAUDE.md.bak）。
-規則檔整份換成規則全文；內容不同時舊檔留成 `<規則檔>.bak`。docs/procedures/ 每次整份覆寫。
+規則檔：一律寫進 AGENTS.md（內容不同時舊檔留成 AGENTS.md.bak）。
+CLAUDE.md：不存在就新建成 `@AGENTS.md` 與 `@STATE.md` 兩行；已有 `@` 匯入就保留原內容，只補缺的那幾行；
+沒有任何 `@` 匯入（規則直接寫在裡面）就換成兩行匯入，舊檔留成 CLAUDE.md.bak。
+docs/procedures/ 每次整份覆寫。
 其餘檔案缺就建，已存在不覆蓋：
   QUESTIONS.md / STATE.md / DECISIONS.md / docs/spec.md / docs/plans/README.md /
   ROADMAP.md / ROADMAP/later.md / ROADMAP/parked.md /
@@ -43,35 +44,25 @@ done
 [ -f "$RULES_SRC" ] || { echo "找不到規則全文: $RULES_SRC" >&2; exit 2; }
 PROJECT="$(cd "$PROJECT" && pwd)"
 
-# ---- 規則檔：CLAUDE.md 或它用 @ 匯入的檔 ----
-# 只認整行只有 `@<路徑>` 的一層匯入，略過 HTML 註解與 code fence 裡的行；絕對路徑不算。
+# ---- 規則檔：一律寫 AGENTS.md ----
+# 只認整行只有 `@<路徑>` 的一層匯入，略過 HTML 註解與 code fence 裡的行。
 CLAUDE_MD="$PROJECT/CLAUDE.md"
-IMPORT=""
-IMPORT_NOTE=""
+IMPORTS=""
 if [ -f "$CLAUDE_MD" ]; then
-  IMPORT="$(awk '
+  IMPORTS="$(awk '
     { sub(/\r$/, "") }
     /^[[:space:]]*```/ { fence = !fence; next }
     fence { next }
     incomment { if (index($0, "-->")) incomment = 0; next }
     /^[[:space:]]*<!--/ { if (!index($0, "-->")) incomment = 1; next }
-    /^@[^[:space:]]+[[:space:]]*$/ { sub(/^@/, ""); sub(/[[:space:]]+$/, ""); print; exit }
+    /^@[^[:space:]]+[[:space:]]*$/ { sub(/^@/, ""); sub(/[[:space:]]+$/, ""); print }
   ' "$CLAUDE_MD")"
-  case "$IMPORT" in
-    /*|~*|[A-Za-z]:*)
-      IMPORT_NOTE="CLAUDE.md 匯入 @$IMPORT 不是相對路徑，不採用"
-      IMPORT="" ;;
-  esac
 fi
-if [ -n "$IMPORT" ]; then
-  RULES_REL="$IMPORT"
-  RULES_WHY="CLAUDE.md 以 @$IMPORT 匯入；CLAUDE.md 只補 @STATE.md"
-else
-  RULES_REL="AGENTS.md"
-  if [ -n "$IMPORT_NOTE" ]; then RULES_WHY="$IMPORT_NOTE；CLAUDE.md 換成匯入檔"
-  elif [ -f "$CLAUDE_MD" ]; then RULES_WHY="CLAUDE.md 沒有 @ 匯入；CLAUDE.md 換成匯入檔，舊檔留成 CLAUDE.md.bak"
-  else RULES_WHY="CLAUDE.md 不存在，新建成匯入檔"; fi
-fi
+OTHER_IMPORTS="$(printf '%s\n' "$IMPORTS" | grep -vxE 'AGENTS\.md|STATE\.md|' | tr '\n' ' ' || true)"
+RULES_REL="AGENTS.md"
+if [ ! -f "$CLAUDE_MD" ]; then RULES_WHY="CLAUDE.md 不存在，新建成匯入檔"
+elif [ -z "$IMPORTS" ]; then RULES_WHY="CLAUDE.md 沒有 @ 匯入；CLAUDE.md 換成匯入檔，舊檔留成 CLAUDE.md.bak"
+else RULES_WHY="CLAUDE.md 已有 @ 匯入；保留原內容，只補缺的 @AGENTS.md／@STATE.md"; fi
 RULES_FILE="$PROJECT/$RULES_REL"
 
 REPORT=""
@@ -103,7 +94,7 @@ fi
 
 # ---- CLAUDE.md：要匯入規則檔與 STATE.md，兩者才會在開工時自動載入 ----
 has_line() { tr -d '\r' < "$2" | grep -qxF -- "$1"; }
-if [ -z "$IMPORT" ]; then
+if [ -z "$IMPORTS" ]; then
   WANT="$(printf '@AGENTS.md\n@STATE.md')"
   if [ -f "$CLAUDE_MD" ] && [ "$(tr -d '\r' < "$CLAUDE_MD")" = "$WANT" ]; then
     report "已是新版" "CLAUDE.md"
@@ -120,15 +111,22 @@ if [ -z "$IMPORT" ]; then
     printf '%s\n' "$WANT" > "$CLAUDE_MD"
     mark_touched "CLAUDE.md"
   fi
-elif has_line "@STATE.md" "$CLAUDE_MD"; then
-  report "已匯入" "CLAUDE.md 已有 @STATE.md"
-elif [ "$DRY" -eq 1 ]; then
-  report "待加一行" "CLAUDE.md（加 @STATE.md）"
 else
-  if [ -n "$(tail -c1 "$CLAUDE_MD")" ]; then printf '\n' >> "$CLAUDE_MD"; fi
-  printf '@STATE.md\n' >> "$CLAUDE_MD"
-  report "加一行" "CLAUDE.md（加 @STATE.md）"
-  mark_touched "CLAUDE.md"
+  for line in "@AGENTS.md" "@STATE.md"; do
+    if has_line "$line" "$CLAUDE_MD"; then
+      report "已匯入" "CLAUDE.md 已有 $line"
+    elif [ "$DRY" -eq 1 ]; then
+      report "待加一行" "CLAUDE.md（加 $line）"
+    else
+      if [ -n "$(tail -c1 "$CLAUDE_MD")" ]; then printf '\n' >> "$CLAUDE_MD"; fi
+      printf '%s\n' "$line" >> "$CLAUDE_MD"
+      report "加一行" "CLAUDE.md（加 $line）"
+      mark_touched "CLAUDE.md"
+    fi
+  done
+  if [ -n "$OTHER_IMPORTS" ]; then
+    report "注意" "CLAUDE.md 另外匯入：${OTHER_IMPORTS}。其中若有舊版規則全文，請手動移除，以免與 AGENTS.md 重複"
+  fi
 fi
 
 # ---- 其餘檔案：缺就建 ----
