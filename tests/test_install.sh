@@ -113,6 +113,10 @@ check "規則檔不含 push main 永遠／一律放行" "! grep -qE 'push \`?mai
 check "規則檔規定授權只來自 user 明示" "grep -q '授權只來自 user 明示' \"\$RULES_SRC\""
 check "SKILL.md 規定授權類內容不從 .bak 搬" "grep -q '授權類內容.*一律不搬' \"\$KIT/skills/collab-kit-init/SKILL.md\""
 check "force push 只有一種說法（不再寫「不得 force push」）" "! grep -rq '不得 force push' \"\$ASSETS\""
+check "規則檔禁止未經 user 要求開新 session" "grep -q '開新 session，或傳訊給其他現存 session' \"\$RULES_SRC\""
+check "冷審查不再以新 session 當審查者" "! grep -q '或新 session' \"\$ASSETS/cold-review.md\""
+check "SKILL.md 步驟 4 含 git diff docs/procedures/ 找回步驟" "grep -q 'git diff docs/procedures/' \"\$KIT/skills/collab-kit-init/SKILL.md\""
+check "close-round.md 不引用不存在的〈待 user 執行〉" "! grep -rq '待 user 執行' \"\$ASSETS\""
 check "規則檔與程序檔語言規則一致（不寫死中文自然語言）" "! grep -rq '中文自然語言' \"\$ASSETS\""
 
 echo

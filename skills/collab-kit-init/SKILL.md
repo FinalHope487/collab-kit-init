@@ -66,9 +66,18 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 需要新增相依套件時只開題，不安裝。
 授權類內容（push `main` 放行、外部工具、額度上限）不偵測、不推論，只在 user 明示後才寫入。
 
-## 步驟 4：處理 `.bak`
+## 步驟 4：處理 `.bak` 與被覆寫的程序檔
 
-規則檔或 `CLAUDE.md` 留了 `.bak` 時，把 `.bak` 裡屬於本專案的內容搬進 `docs/project-rules.md`（目錄、指令、專案專屬規則），通用規則不搬。授權類內容（push `main` 放行、外部工具、額度上限）一律不搬，列出哪些行沒搬，由 user 決定是否寫入。搬完告訴 user 哪些行搬到哪、`.bak` 可以刪。不自己刪 `.bak`。
+規則檔或 `CLAUDE.md` 留了 `.bak` 時，逐段看 `.bak`：
+
+- 本專案的目錄、指令、專案專屬規則 → 搬進 `docs/project-rules.md`。通用規則不搬
+- 專案的目標、現階段、目前綁住工作的約束 → 搬進 `STATE.md`
+- `CLAUDE.md.bak` 裡除了規則以外的 `@` 匯入 → 加回 `CLAUDE.md`，排在 `@STATE.md` 之後
+- 授權類內容（push `main` 放行、外部工具、額度上限）一律不搬，列出哪些行沒搬，由 user 決定是否寫入
+
+搬完告訴 user 哪些行搬到哪、`.bak` 可以刪。不自己刪 `.bak`。
+
+專案若改過 `docs/procedures/`：腳本已整份覆寫。用 `git diff docs/procedures/` 看被蓋掉的專案改動（改動必須曾經提交過才找得回），把專案專屬的部分搬進 `docs/project-rules.md`，在回報列出。
 
 ## 完成後回報
 
