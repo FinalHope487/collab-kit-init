@@ -226,4 +226,4 @@ echo
 echo "== 腳本不做、接下來由你做的 =="
 echo "  步驟 2：STATE.md 還是模板時，照已知事實填目標、契約、下一步、測試指令"
 echo "  步驟 3：偵測本專案的驗證指令、服務埠等，寫進 docs/project-rules.md"
-echo "  步驟 4：留了 .bak 時依 SKILL.md 步驟 4 分流搬（專案規則→docs/project-rules.md、目標與約束→STATE.md、其他 @ 匯入→CLAUDE.md、授權類不搬）；並用 git diff docs/procedures/ 檢查被覆寫的程序檔、處理舊 docs/codex-collaboration.md"
+echo "  步驟 4：留了 .bak 時依 SKILL.md 步驟 4 分流搬（專案規則→docs/project-rules.md、目標與約束→STATE.md、其他 @ 匯入→CLAUDE.md、授權類不搬）；並用 git diff docs/procedures/ 檢查被覆寫的程序檔"
