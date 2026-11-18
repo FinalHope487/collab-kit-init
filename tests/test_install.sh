@@ -154,7 +154,11 @@ bash "$INSTALL" --project "$P" --dry-run > "$WORK/dry.out" 2>&1
 check "--dry-run 不寫任何檔" "[ -z \"\$(ls -A \"\$P\")\" ]"
 
 echo "== kit 本體不依賴外部工具與私人專案 =="
-ext="$(grep -rilE 'chatgpt|codex|sonnet|calculus-visualizer|dreamcore' "$KIT/skills" 2>/dev/null | tr '\n' ' ')"
+ext=""
+while IFS= read -r f; do
+  # 舊檔名 codex-collaboration.md 只在 SKILL.md 的孤兒檔提醒裡允許出現
+  if sed 's/codex-collaboration\.md//Ig' "$f" | grep -qiE 'chatgpt|codex|sonnet|calculus-visualizer|dreamcore'; then ext="$ext$f "; fi
+done < <(find "$KIT/skills" -type f)
 check "skills/ 不提指名工具或私人專案名（命中:${ext:- 無}）" "[ -z \"\$ext\" ]"
 priv="$(grep -ilE 'calculus-visualizer|dreamcore|HANDOFF' "$KIT/README.md" 2>/dev/null)"
 check "README 不提私人專案名或已刪的 HANDOFF" "[ -z \"\$priv\" ]"
@@ -172,6 +176,11 @@ check "規則檔禁止未經 user 要求開新 session" "grep -q '開新 session
 check "冷審查不再以新 session 當審查者" "! grep -q '或新 session' \"\$ASSETS/cold-review.md\""
 check "SKILL.md 步驟 4 含 git diff docs/procedures/ 找回步驟" "grep -q 'git diff docs/procedures/' \"\$KIT/skills/collab-kit-init/SKILL.md\""
 check "close-round.md 不引用不存在的〈待 user 執行〉" "! grep -rq '待 user 執行' \"\$ASSETS\""
+check "QUESTIONS.md 範本有沒有問答工具時的退路" "grep -q '沒有這類工具' \"\$ASSETS/QUESTIONS.md\""
+check "delegation.md 觸發條件含另一個 agent 工具" "grep -q '^觸發：.*另一個 agent 工具' \"\$ASSETS/procedures/delegation.md\""
+check "close-round.md 的審查定義照 cold-review.md，不另立標準" "grep -q '照 \`docs/cold-review.md\`' \"\$ASSETS/procedures/close-round.md\" && ! grep -q '不帶先前上下文的審查者審查' \"\$ASSETS/procedures/close-round.md\""
+check "SKILL.md 說明舊 codex-collaboration.md 孤兒檔的處理" "grep -q 'docs/codex-collaboration.md' \"\$KIT/skills/collab-kit-init/SKILL.md\""
+check "README 與 SKILL.md 不再說 CLAUDE.md『其餘內容不動』" "! grep -q '其餘內容不動' \"\$KIT/README.md\" \"\$KIT/skills/collab-kit-init/SKILL.md\""
 check "規則檔與程序檔語言規則一致（不寫死中文自然語言）" "! grep -rq '中文自然語言' \"\$ASSETS\""
 
 echo

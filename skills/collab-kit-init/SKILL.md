@@ -12,7 +12,7 @@ disable-model-invocation: true
 |---|---|---|
 | kit | 規則檔（`AGENTS.md`）、`docs/procedures/*.md`、`.collab-kit-version` | 每次整份覆寫。規則檔內容不同時舊檔留成 `.bak`。專案不改這些檔 |
 | 專案 | `STATE.md`、`DECISIONS.md`、`QUESTIONS.md`、`ROADMAP.md`、`ROADMAP/`、`docs/spec.md`、`docs/plans/`、`docs/project-rules.md`、`docs/testing.md`、`docs/cold-review.md`、`tools/outline.py` | 缺才建，已存在不覆蓋 |
-| 專案 | `CLAUDE.md` | 只保證它匯入 `AGENTS.md` 與 `STATE.md`，其餘內容不動 |
+| 專案 | `CLAUDE.md` | 只保證它匯入 `AGENTS.md` 與 `STATE.md`。不存在就新建；已有 `@` 匯入時保留原內容、只補缺的行；完全沒有 `@` 匯入時換成兩行匯入並留 `.bak` |
 
 專案專屬的規則寫進 `docs/project-rules.md`，不寫進規則檔或 `docs/procedures/`：那兩處下次升級會被覆寫。
 
@@ -80,13 +80,15 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 
 搬完告訴 user 哪些行搬到哪、`.bak` 可以刪。不自己刪 `.bak`。
 
+舊版 kit 遺留的 `docs/codex-collaboration.md` 已被 `docs/cold-review.md` 取代，腳本不會刪它。列給 user，由 user 決定是否刪除；其中指名的工具順序與授權不搬進任何檔。
+
 專案若改過 `docs/procedures/`：腳本已整份覆寫。用 `git diff docs/procedures/` 看被蓋掉的專案改動（改動必須曾經提交過才找得回），把專案專屬的部分搬進 `docs/project-rules.md`，在回報列出。
 
 ## 完成後回報
 
-- 規則檔是哪一個，有沒有留 `.bak`
+- `AGENTS.md` 有沒有留 `.bak`（含 `.bak.1`…），`CLAUDE.md` 補了哪些行
 - 版本戳的舊值與新值
 - 哪些新建、哪些已存在、哪些被覆寫
 - 步驟 2、3 各項填了什麼，有沒有開成 `QUESTIONS.md` 的題
-- 步驟 4 搬了什麼
+- 步驟 4：哪些行搬到哪、哪些授權行沒搬、`git diff docs/procedures/` 找回了什麼、`.bak` 可以刪、舊 `docs/codex-collaboration.md` 怎麼處理
 - **建立或修改的檔案裡，有哪些命中 `.gitignore`**

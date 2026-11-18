@@ -5,7 +5,7 @@
 user 答完的題當場刪除，內容依性質搬進 `DECISIONS.md`、`docs/troubleshooting.md` 或 `ROADMAP.md`。
 user 答得不清楚時，刪掉原題，把未決的問題點寫成新的問題。
 
-總是使用內建問答工具問，不要用純文字。
+總是使用內建問答工具問，不要用純文字；沒有這類工具時才把題寫在本檔，並在回報端上來。
 
 寫法與結案規則見 `docs/procedures/questions.md`。
 
