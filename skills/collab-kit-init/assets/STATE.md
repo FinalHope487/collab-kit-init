@@ -25,20 +25,21 @@
 |---|---|
 | 這一輪讓原本好的東西變差 | 回退這一輪，不往上疊 |
 | 同類問題連續出現、修一處壞一處 | 停手，重新審視那個契約 |
+| 發生資料遺失、誤推送或誤對外發送 | 停手，不自行修補；回報當下狀態與可回退的手段，由 user 決定 |
 
 ## 檔案地圖
 
-「人」＝user 會讀也可能改，用中文自然語言寫。「agent」＝只有 agent 讀，用結構化寫法。
+「人」＝user 會讀也可能改，用 user 的語言、自然語言寫。「agent」＝只有 agent 讀，用結構化寫法。
 
 | 檔案 | 讀者 | 何時讀 |
 |---|---|---|
-| `AGENTS.md`、`STATE.md` | 人、agent | 每次開工自動載入 |
+| `AGENTS.md`、`STATE.md` | 人、agent | 每次開工先讀（有 `CLAUDE.md` 匯入的平台自動載入） |
 | `DECISIONS.md` | 人、agent | 對某個決定有疑問時 |
 | `ROADMAP.md`、`ROADMAP/` | 人、agent | 選工作時 |
 | `QUESTIONS.md` | 人、agent | 有待決問題時 |
 | `docs/spec.md`、`docs/plans/` | 人、agent | 動到公開契約或接手跨輪計畫時 |
 | `docs/procedures/` | agent | `AGENTS.md`〈程序〉的觸發條件成立時 |
-| `docs/project-rules.md`、`docs/testing.md`、`docs/codex-collaboration.md` | agent | 要跑驗證、審查或委派時 |
+| `docs/project-rules.md`、`docs/testing.md`、`docs/cold-review.md` | agent | 要跑驗證、審查或委派時 |
 
 ## 測試
 

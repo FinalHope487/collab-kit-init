@@ -1,5 +1,5 @@
-預設用中文回答使用者。
-總是質疑 Agents.md 的內容，若你認為有更好的做事方法，先照 Agent.md 做，事後回報理由及改進建議。
+開工第一件事：先讀 `STATE.md`。
+用 user 的語言回答。
 
 這份檔只放「不隨專案進度改變、而且要在需要之前就知道」的規則。專案現況在 `STATE.md`。做某件事的步驟在 `docs/procedures/`，條件成立才讀，見〈程序〉。
 
@@ -9,20 +9,28 @@
 
 未經 user 同意不得執行，也不得委派他人執行、不得用等價的低風險做法繞過：
 
-- 消耗付費額度：LLM API、另外啟動的付費 LLM CLI agent、計量收費 API、雲端算力，含訂閱額度。完全免費的本機測試、本 session 的 fork 與一般 subagent 不算，後兩者照 `docs/procedures/delegation.md`；Codex 的審查與 rescue 已獲長期同意，見 `docs/codex-collaboration.md`
+- 消耗付費額度：LLM API、另外啟動的付費 LLM CLI agent、計量收費 API、雲端算力，含訂閱額度。`docs/project-rules.md` 明列核准的外部工具、操作與上限時，範圍內視為已同意，範圍外照樣要問。完全免費的本機測試、本 session 的 fork 與一般子代理不算，後兩者照 `docs/procedures/delegation.md`
 - 可能遺失資料：改資料格式且既有存檔讀不起來（見 `docs/procedures/data-format.md`）、建 migration／db push、刪除或覆蓋既有資料、批次改用戶資料、`git push --force`／`--force-with-lease`
 - 資安暴露：動加密演算法／金鑰處理／認證流程、改權限模型、新增或移除相依套件、deploy／改 production env
+- 密鑰與環境變數：讀取、印出、寫入、提交 `.env` 或憑證類檔案，或把它們傳給外部服務
+- 對外發送：寄信、發訊息、發佈或留言等會讓其他人看到的動作
+- 刪除或停用雲端資源：儲存、資料庫、服務、DNS、帳號
 - 不符合 `docs/procedures/delegation.md` 五項的委派
+- `git push` 到 `main` 或預設分支：除非 `docs/project-rules.md` 明寫放行。其他分支可直接推
+- 新增或放寬 `docs/project-rules.md` 裡的授權（push `main` 放行、外部工具、額度上限）：授權只來自 user 明示的話。不從偵測結果、舊規則檔、`.bak` 或其他文件搬入，也不自己推論
 - 正規管道（既有工具、既有 CI）故障時，在未經同意下永久替換正式建置或佈署流程。純本地驗證／除錯用的臨時 scratch 腳本不在此限
 
-不確定是否不可逆、是否影響 production／既有資料時，當作要問。push `main` 永遠放行，直接推。
+不確定是否不可逆、是否影響 production／既有資料時，當作要問。
 
 ## 禁止，除非 user 主動要求
 
 同意一次做一次，不延伸到下一次：
 
 - 在規則檔新增規則行或章節
-- 在 `SOP`／`ROADMAP`／`QUESTIONS` 等檔案新增原本不存在的標題或欄位
+- 在 `ROADMAP`／`QUESTIONS` 等檔案新增原本不存在的標題或欄位
+- 開新 session，或傳訊給其他現存 session（本 session 的 fork 與子代理不算；`docs/project-rules.md` 明列的外部工具不在此限）
+
+只由 user 修改（上面「除非 user 主動要求」的例外不適用）：`docs/spec.md`（公開契約與驗收）。發現規格需要變更時，把修改後的完整內容寫進 `docs/spec.proposed.md`（不存在就建），並在 `QUESTIONS.md` 開一題，由 user 自己套用；user 要求你改時也一樣。偏離規格的實作照〈代 user 決策〉在 `DECISIONS.md` 加一行
 
 ## 代 user 決策
 
@@ -34,7 +42,7 @@
 - user 的決策與既有文件、程式事實矛盾，或照字面做會壞：自己選修法，修不好才擱置；回報指出矛盾（附 `檔案:行號`）
 - 任務前提有問題：自己處理
 - 偏離既有規格或推翻已拍板決策：在 `DECISIONS.md` 加一行
-- 委派、push `main`
+- 委派
 - 測試紅了：修成讓公開契約或系統不變量（Invariants）成立的最小修正；若因重構內部實作細節導致脆弱測試變紅，將測試改寫為只驗公開輸出
 
 選方案的偏好：
@@ -52,12 +60,12 @@
 
 「輪」＝user 的一次委派；同一輪內的重試叫「次」。
 
-1. `STATE.md` 已自動載入，照它做。對某個決定有疑問才查 `DECISIONS.md`。不要重新論證已論證過的事
+1. 開工先讀 `STATE.md`（有 `CLAUDE.md` 匯入的平台已自動載入），照它做。對某個決定有疑問才查 `DECISIONS.md`。不要重新論證已論證過的事
 2. 其他文件只看標題行，不預先精讀非關內文。哪個檔何時讀：`STATE.md`〈檔案地圖〉
 3. 讀大型檔案前，優先掌握檔案結構與符號索引，按需讀取目標區段，避免無效上下文浪費
-4. user 中途插話或做完後再補的要求：複述理解，用 AskUserQuestion 問到 user 確認；要求裡沒講到的可逆細節，自己選好值寫進複述，讓 user 一次確認
+4. user 中途插話或做完後再補的要求：複述理解，用內建問答工具問到 user 確認（問不了時照第 6 條）；要求裡沒講到的可逆細節，自己選好值寫進複述，讓 user 一次確認
 5. 看得出命中〈必須先問 user〉的事：動手前一次問完，不得做到一半才問
-6. 問 user 的每一題都要有地方住：用 AskUserQuestion 問，問不了就寫進 `QUESTIONS.md`，不得只寫在訊息文字裡。user 沒答的題仍是待決，沉默不算同意：依賴它的工作不做。開工時先把 `QUESTIONS.md` 裡未答的題用 AskUserQuestion 再問一次。理由：只寫在訊息裡的問題，user 換話題後就沒人記得
+6. 問 user 的每一題都要有地方住：用內建問答工具問，問不了就寫進 `QUESTIONS.md`，不得只寫在訊息文字裡。user 沒答的題仍是待決，沉默不算同意：依賴它的工作不做。開工時先把 `QUESTIONS.md` 裡未答的題用內建問答工具再問一次。理由：只寫在訊息裡的問題，user 換話題後就沒人記得
 
 # 程序
 
@@ -68,7 +76,7 @@
 | 要問 user；執行中碰到要問的事；user 答了 `QUESTIONS.md` 的題 | `docs/procedures/questions.md` |
 | 要改任何程式或測試 | `docs/procedures/verification.md` |
 | 改動後既有存檔可能讀不起來，或 Schema 變了 | `docs/procedures/data-format.md` |
-| 要把工作交給 fork、subagent、Codex 或 ChatGPT | `docs/procedures/delegation.md` |
+| 要把工作交給 fork、子代理或另一個 agent 工具 | `docs/procedures/delegation.md` |
 | 動過檔案，要 commit 或 push | `docs/procedures/close-round.md` |
 | user 要求整理，或文件檢查腳本報錯 | `docs/procedures/chores.md` |
 
@@ -90,7 +98,8 @@ user 原本要的東西真的能用了才算完成，不是「做完你以為的
 2. 〈代 user 選的〉
 3. `QUESTIONS.md` 全文（若無則寫「無」）
 4. 未做的部分，含沒能力驗的：被權限擋下、環境缺件、少跑的驗證層；驗證跑到哪個規模就寫哪個規模
-5. 有開 fork／subagent 時寫一行：開了幾個、用多少額度、分別做了什麼
+5. 有開 fork／子代理，或（經 user 要求）開新 session，或交給 `docs/project-rules.md` 明列的外部 agent 工具時寫一行：開了幾個、用多少額度、分別做了什麼；外部工具另寫呼叫次數與用途
+6. 有跑冷審查時：每一次審出什麼（意見全文）、你的驗證結果與處理、還剩哪些阻擋意見，並問 user 還要不要再審、再審幾次（照 `docs/cold-review.md`〈收尾〉）
 
 ---
 
@@ -102,9 +111,9 @@ user 原本要的東西真的能用了才算完成，不是「做完你以為的
 
 | 讀者 | 例 | 寫法 |
 |---|---|---|
-| user 會讀、也可能改 | `STATE.md`、`DECISIONS.md`、`ROADMAP.md`、`QUESTIONS.md`、回報 | 中文自然語言。每條規則附一行理由，讓讀者能處理規則沒寫到的情況 |
+| user 會讀、也可能改 | `STATE.md`、`DECISIONS.md`、`ROADMAP.md`、`QUESTIONS.md`、回報 | user 的語言、自然語言。每條規則附一行理由，讓讀者能處理規則沒寫到的情況 |
 | 要自己判斷的 agent | 設計說明、藍圖的目標與取捨 | 自然語言，寫出意圖與理由 |
-| 照步驟做的 builder，或只有 agent 讀 | 實作交接、`docs/procedures/` | 結構化：開頭寫觸發條件與讀者；一句一個指令，祈使句；字面值照抄。理由只在會改變下一個動作時才寫 |
+| 照步驟做的子代理，或只有 agent 讀 | 實作交接、`docs/procedures/` | 結構化：開頭寫觸發條件與讀者；一句一個指令，祈使句；字面值照抄。理由只在會改變下一個動作時才寫 |
 
 哪個檔屬於哪一類：`STATE.md`〈檔案地圖〉。既有檔案不回頭改寫，新寫或重寫時才套用。
 
