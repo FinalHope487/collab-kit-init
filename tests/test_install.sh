@@ -7,13 +7,10 @@ KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INSTALL="$KIT/skills/collab-kit-init/scripts/install.sh"
 ASSETS="$KIT/skills/collab-kit-init/assets"
 RULES_SRC="$ASSETS/claude-md-rules.md"
-# 規則全文的來源專案；不在這台機器上就跳過那一條
-SOURCE_AGENTS="${SOURCE_AGENTS:-$KIT/../dreamcore-explorer/AGENTS.md}"
 
-PASS=0; FAIL=0; SKIP=0
+PASS=0; FAIL=0
 ok()   { PASS=$((PASS + 1)); echo "  ok    $1"; }
 bad()  { FAIL=$((FAIL + 1)); echo "  FAIL  $1"; }
-skip() { SKIP=$((SKIP + 1)); echo "  skip  $1"; }
 check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 same() { cmp -s <(tr -d '\r' < "$1") <(tr -d '\r' < "$2"); }
 TWO_IMPORTS="$(printf '@AGENTS.md\n@STATE.md')"
@@ -115,13 +112,6 @@ stale="$stale$(grep -lE 'SOP-README|SOP-retired|session-handoff|decisions-README
   "$KIT/README.md" "$KIT/skills/collab-kit-init/SKILL.md" "$INSTALL" 2>/dev/null | tr '\n' ' ')"
 check "README、SKILL.md、install.sh 不提已移除的檔（命中:${stale:- 無}）" "[ -z \"\$stale\" ]"
 
-echo "== 與來源專案一致 =="
-if [ -f "$SOURCE_AGENTS" ]; then
-  check "assets 規則全文逐字等於 $SOURCE_AGENTS" "same \"\$RULES_SRC\" \"\$SOURCE_AGENTS\""
-else
-  skip "找不到 $SOURCE_AGENTS"
-fi
-
 echo
-echo "$PASS passed, $FAIL failed, $SKIP skipped"
+echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

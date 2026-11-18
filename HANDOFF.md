@@ -24,7 +24,7 @@
 機器能檢查的事現在還是靠 agent 自己記得：文件裡寫到的路徑是否存在、Markdown 是否超過 32 KiB、`STATE.md` 是否超過 6 KiB、`CLAUDE.md` 是否匯入規則檔與 `STATE.md`。
 
 - 要做：寫成 kit 的 `assets/` 裡的一支腳本，裝進每個專案的 `tools/`，並用 git 的 pre-commit hook 讓它自動跑，agent 不必記得。
-- 可抄的起點：`tests/test_install.sh` 裡「裝進專案的文件引用的檔案全部存在」那一段已經是一個路徑檢查；dreamcore-explorer 的 `ROADMAP.md` 有這支腳本的規格。
+- 可抄的起點：`tests/test_install.sh` 裡「裝進專案的文件引用的檔案全部存在」那一段已經是一個路徑檢查。
 - 注意：新增 hook 會改每個專案的 git 設定，裝之前要你同意。
 
 ### 4. 沒有「哪些專案還沒更新」的指令
@@ -39,7 +39,7 @@
 
 ### 7. 拿這套規則做線上服務的風險，一項都還沒處理
 
-- push 到 `main` 不必問，但有些專案 push 就等於發布（dreamcore-explorer 和 minecraft-dungeons-wiki 都有 GitHub Pages 的 workflow）。
+- push 到 `main` 不必問，但有些專案 push 就等於發布（例如專案有 GitHub Pages 的 workflow）。
 - 推送前只跑和改動有關的測試。
 - 資料格式改了之後，「這是不是還在原型階段、可以直接改」由 agent 自己判斷。
 - 「必須先問」的清單沒有涵蓋：密鑰與環境變數的處理、對外發送訊息、刪除雲端資源。
@@ -53,7 +53,6 @@
 
 | 專案 | 現在的規則版本 | 狀況 | 要做 |
 |---|---|---|---|
-| dreamcore-explorer | 規則檔與 kit 相同；`docs/procedures/` 比 kit 舊 | 已手工改成新結構 | 見下方 |
 | minecraft-dungeons-wiki、`-luna`、`-sol` | 已安裝副本的那個分岔 | `docs/spec.md` 與三份子規格有未提交的改動；同一組測試數字寫在四個地方 | 等未提交的改動 commit 後再裝。`handoff.md`、〈基線〉、8 份決策檔照 `references/upgrade-existing.md` 搬 |
 | calculus-visualizer | 更舊的版本 | 文件債最重：113 份決策檔、`ROADMAP.md` 24.7 KB、`SOP` 13 個檔約 134 個標題、753 個 commit 中 178 個只動文件。CI 停用，36 個測試被跳過 | 優先處理。先只做文件搬遷，不碰程式。程式的技術債我只看過規模數字，沒讀程式 |
 | probability-visualizer | 另一個舊版本 | 沒看過內容 | 先 `--dry-run` |
@@ -62,17 +61,7 @@
 
 每個專案的做法相同：先跑 `install.sh --project <路徑> --dry-run` 看會動什麼，確認後正式跑，再照 `references/upgrade-existing.md` 搬舊檔。搬舊檔會刪檔，要你確認清單。
 
-### dreamcore-explorer 還剩的
-
-- `docs/procedures/` 和 kit 有三處不同：kit 把「記到 `SOP/`」改成「記到 `docs/troubleshooting.md`」；kit 拿掉了指向 `archive/README.md` 的指標；dreamcore 多兩行專案專屬的內容（房間檔的參數鍵只增不改名、文件檢查腳本的項目編號）。重裝前先把那兩行搬進 `docs/project-rules.md`，否則會被蓋掉。
-- `SOP.md`、`SOP/`、`NOTES.md` 還在，沒搬。
-- 光照設計的基礎還沒寫（你說可以先寫）。
-- 左上角的畫質標籤：你說考慮改成「自動」。我沒查它現在是不是真的會自動調；不會的話改標籤反而誤導。
-- `claude-decisions.json` 是專案外的工具寫的，寫入來源沒找到。
-- `docs/final-proposal/` 的七個刪除還在你的工作目錄，沒提交，等你決定。
-
 ## 等你回答的
 
-1. dreamcore-explorer 每次 push 到 `main` 都會自動發布到 GitHub Pages。你接受嗎？不接受的話，「push `main` 永遠放行」這條要加例外。
-2. 文件檢查腳本和「哪些專案還沒更新」的腳本，由我寫還是交給 builder？這次的安裝腳本和測試是我直接改的。
-3. kit 要不要 push？
+1. 文件檢查腳本和「哪些專案還沒更新」的腳本，由我寫還是交給 builder？這次的安裝腳本和測試是我直接改的。
+2. kit 要不要 push？

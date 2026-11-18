@@ -61,7 +61,7 @@ skills/collab-kit-init/
 
 ## 改規則的流程
 
-規則全文的來源是 `../dreamcore-explorer/AGENTS.md`，測試會比對兩者逐字相同。
+規則全文只有一份：`assets/claude-md-rules.md`。
 
 1. 在 kit 改 `assets/claude-md-rules.md` 或 `assets/procedures/`。
 2. 跑測試。
@@ -77,7 +77,6 @@ bash tests/test_install.sh
 
 對暫存目錄真跑 `install.sh`，斷言：該建的檔都建了、不再安裝的檔沒建、規則檔與程序檔逐字等於 assets、
 裝進專案的文件引用的路徑全部存在、專案擁有的既有檔不被覆蓋、程序檔與版本戳會被覆寫、重跑不重複加行、`--dry-run` 不寫檔。
-規則全文的來源專案（預設 `../dreamcore-explorer/AGENTS.md`，可用 `SOURCE_AGENTS` 指定）存在時，再比對兩者逐字相同。
 
 ## 安裝
 
