@@ -101,6 +101,10 @@ check "--dry-run 不寫任何檔" "[ -z \"\$(ls -A \"\$P\")\" ]"
 echo "== kit 本體只依賴 Claude =="
 ext="$(grep -rilE 'chatgpt|codex|sonnet|calculus-visualizer|dreamcore' "$KIT/README.md" "$KIT/skills" 2>/dev/null | tr '\n' ' ')"
 check "README 與 skills/ 不提 ChatGPT、Codex、Sonnet 或私人專案名（命中:${ext:- 無}）" "[ -z \"\$ext\" ]"
+check "規則檔開工先讀 STATE.md，不假設自動載入" "grep -q '開工先讀 \`STATE.md\`' \"\$RULES_SRC\""
+check "冷審查有不依賴外部工具的備援（未經獨立審查）" "grep -q '未經獨立審查' \"\$ASSETS/cold-review.md\""
+plat="$(grep -rlE 'AskUserQuestion|subagent' "$ASSETS" "$KIT/skills/collab-kit-init/SKILL.md" 2>/dev/null | tr '\n' ' ')"
+check "assets 與 SKILL.md 不含單一平台專有詞（AskUserQuestion、subagent；命中:${plat:- 無}）" "[ -z \"\$plat\" ]"
 check "規則檔不含 push main 永遠放行" "! grep -q 'push \`main\` 永遠放行' \"\$RULES_SRC\""
 
 echo

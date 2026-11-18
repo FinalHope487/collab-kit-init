@@ -8,7 +8,7 @@
 
 未經 user 同意不得執行，也不得委派他人執行、不得用等價的低風險做法繞過：
 
-- 消耗付費額度：LLM API、另外啟動的付費 LLM CLI agent、計量收費 API、雲端算力，含訂閱額度。完全免費的本機測試、本 session 的 fork 與一般 subagent 不算，後兩者照 `docs/procedures/delegation.md`
+- 消耗付費額度：LLM API、另外啟動的付費 LLM CLI agent、計量收費 API、雲端算力，含訂閱額度。`docs/project-rules.md` 明列核准的外部工具、操作與上限時，範圍內視為已同意，範圍外照樣要問。完全免費的本機測試、本 session 的 fork 與一般子代理不算，後兩者照 `docs/procedures/delegation.md`
 - 可能遺失資料：改資料格式且既有存檔讀不起來（見 `docs/procedures/data-format.md`）、建 migration／db push、刪除或覆蓋既有資料、批次改用戶資料、`git push --force`／`--force-with-lease`
 - 資安暴露：動加密演算法／金鑰處理／認證流程、改權限模型、新增或移除相依套件、deploy／改 production env
 - 不符合 `docs/procedures/delegation.md` 五項的委派
@@ -52,12 +52,12 @@
 
 「輪」＝user 的一次委派；同一輪內的重試叫「次」。
 
-1. `STATE.md` 已自動載入，照它做。對某個決定有疑問才查 `DECISIONS.md`。不要重新論證已論證過的事
+1. 開工先讀 `STATE.md`（有 `CLAUDE.md` 匯入的平台已自動載入），照它做。對某個決定有疑問才查 `DECISIONS.md`。不要重新論證已論證過的事
 2. 其他文件只看標題行，不預先精讀非關內文。哪個檔何時讀：`STATE.md`〈檔案地圖〉
 3. 讀大型檔案前，優先掌握檔案結構與符號索引，按需讀取目標區段，避免無效上下文浪費
-4. user 中途插話或做完後再補的要求：複述理解，用 AskUserQuestion 問到 user 確認；要求裡沒講到的可逆細節，自己選好值寫進複述，讓 user 一次確認
+4. user 中途插話或做完後再補的要求：複述理解，用內建問答工具問到 user 確認；要求裡沒講到的可逆細節，自己選好值寫進複述，讓 user 一次確認
 5. 看得出命中〈必須先問 user〉的事：動手前一次問完，不得做到一半才問
-6. 問 user 的每一題都要有地方住：用 AskUserQuestion 問，問不了就寫進 `QUESTIONS.md`，不得只寫在訊息文字裡。user 沒答的題仍是待決，沉默不算同意：依賴它的工作不做。開工時先把 `QUESTIONS.md` 裡未答的題用 AskUserQuestion 再問一次。理由：只寫在訊息裡的問題，user 換話題後就沒人記得
+6. 問 user 的每一題都要有地方住：用內建問答工具問，問不了就寫進 `QUESTIONS.md`，不得只寫在訊息文字裡。user 沒答的題仍是待決，沉默不算同意：依賴它的工作不做。開工時先把 `QUESTIONS.md` 裡未答的題用內建問答工具再問一次。理由：只寫在訊息裡的問題，user 換話題後就沒人記得
 
 # 程序
 
@@ -68,7 +68,7 @@
 | 要問 user；執行中碰到要問的事；user 答了 `QUESTIONS.md` 的題 | `docs/procedures/questions.md` |
 | 要改任何程式或測試 | `docs/procedures/verification.md` |
 | 改動後既有存檔可能讀不起來，或 Schema 變了 | `docs/procedures/data-format.md` |
-| 要把工作交給 fork 或 subagent | `docs/procedures/delegation.md` |
+| 要把工作交給 fork 或子代理 | `docs/procedures/delegation.md` |
 | 動過檔案，要 commit 或 push | `docs/procedures/close-round.md` |
 | user 要求整理，或文件檢查腳本報錯 | `docs/procedures/chores.md` |
 
@@ -90,7 +90,7 @@ user 原本要的東西真的能用了才算完成，不是「做完你以為的
 2. 〈代 user 選的〉
 3. `QUESTIONS.md` 全文（若無則寫「無」）
 4. 未做的部分，含沒能力驗的：被權限擋下、環境缺件、少跑的驗證層；驗證跑到哪個規模就寫哪個規模
-5. 有開 fork／subagent 時寫一行：開了幾個、用多少額度、分別做了什麼
+5. 有開 fork／子代理時寫一行：開了幾個、用多少額度、分別做了什麼
 
 ---
 

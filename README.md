@@ -35,7 +35,7 @@ kit 擁有，每次安裝整份覆寫：
 | `ROADMAP.md`、`ROADMAP/later.md`、`ROADMAP/parked.md` | 未完成的待辦。做完就刪 |
 | `docs/spec.md`、`docs/plans/README.md` | 公開契約與驗收；跨輪計畫的寫法 |
 | `docs/project-rules.md` | 本專案專屬的目錄、驗證指令、替身、服務埠、工具執行方式，以及專案自己的規則 |
-| `docs/testing.md`、`docs/cold-review.md` | 測試分層與推送前驗證；冷審查（用唯讀 subagent） |
+| `docs/testing.md`、`docs/cold-review.md` | 測試分層與推送前驗證；冷審查（獨立子代理優先，外部工具為選用） |
 | `tools/outline.py` | 列出原始碼、`.css`、`.md` 各區塊的起訖行號；讀長檔時只讀要動的那一段 |
 
 用到才建、腳本不建：`docs/troubleshooting.md`（會重複出現的症狀與查法）、`docs/environment.md`（外部事實，從 `assets/environment.md` 複製）、`docs/specs/`（子規格）。
