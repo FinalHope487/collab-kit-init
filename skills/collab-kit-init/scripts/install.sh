@@ -14,10 +14,11 @@ PROJECT="$PWD"
 DRY=0
 WITH_HOOKS=0
 ALLOW_PUSH_MAIN=0
+ALLOW_MCP_WRITES=0
 
 usage() {
   cat <<'USAGE'
-用法: install.sh [--project DIR] [--dry-run] [--with-hooks [--allow-push-main]]
+用法: install.sh [--project DIR] [--dry-run] [--with-hooks [--allow-push-main] [--allow-github-mcp-writes]]
 
   --project DIR   專案根目錄（預設：目前工作目錄）
   --dry-run       只印出會做什麼，不寫檔
@@ -27,6 +28,8 @@ usage() {
                     git 的 pre-commit（已有別人的 hook 就不覆蓋）
   --allow-push-main  只和 --with-hooks 併用：專案已明寫放行 push main 時，hook 不擋 push main
                     （force push 與密鑰檔仍擋）
+  --allow-github-mcp-writes  只和 --with-hooks 併用：Claude 的 permissions.deny 預設擋掉 GitHub MCP 的
+                    push_files、create_or_update_file、delete_file、merge_pull_request；加這個旗標就不擋
 
 規則檔：一律寫進 AGENTS.md（內容不同時舊檔留成 AGENTS.md.bak；.bak 已存在就依序用 .bak.1、.bak.2，不覆蓋）。
 預檢：CLAUDE.md 或 AGENTS.md 是 symlink、兩者是同一個檔、任何要寫的檔是目錄或斷掉的 symlink 時，中止（結束碼 3），不寫任何東西（含 --dry-run）。
@@ -47,12 +50,13 @@ while [ $# -gt 0 ]; do
     --dry-run) DRY=1; shift ;;
     --with-hooks) WITH_HOOKS=1; shift ;;
     --allow-push-main) ALLOW_PUSH_MAIN=1; shift ;;
+    --allow-github-mcp-writes) ALLOW_MCP_WRITES=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "未知參數: $1" >&2; usage >&2; exit 2 ;;
   esac
 done
 
-[ "$ALLOW_PUSH_MAIN" -eq 0 ] || [ "$WITH_HOOKS" -eq 1 ] || { echo "--allow-push-main 只能和 --with-hooks 一起用" >&2; exit 2; }
+{ [ "$ALLOW_PUSH_MAIN" -eq 0 ] && [ "$ALLOW_MCP_WRITES" -eq 0 ]; } || [ "$WITH_HOOKS" -eq 1 ] || { echo "--allow-push-main、--allow-github-mcp-writes 只能和 --with-hooks 一起用" >&2; exit 2; }
 [ -d "$PROJECT" ] || { echo "專案目錄不存在: $PROJECT" >&2; exit 2; }
 [ -f "$RULES_SRC" ] || { echo "找不到規則全文: $RULES_SRC" >&2; exit 2; }
 PROJECT="$(cd "$PROJECT" && pwd)"
@@ -295,6 +299,7 @@ if [ "$WITH_HOOKS" -eq 1 ]; then
     hrel="${spec%%:*}"; hagent="${spec##*:}"
     margs=(--target "$PROJECT/$hrel" --agent "$hagent")
     if [ "$ALLOW_PUSH_MAIN" -eq 1 ]; then margs+=(--allow-push-main); fi
+    if [ "$ALLOW_MCP_WRITES" -eq 1 ]; then margs+=(--allow-github-mcp-writes); fi
     if [ "$DRY" -eq 1 ]; then margs+=(--dry-run); else margs+=(--apply); fi
     mout="$(python3 "$MERGE_HOOKS" "${margs[@]}")"
     mstatus="${mout%%$'\t'*}"

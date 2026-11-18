@@ -62,22 +62,46 @@ skills/collab-kit-init/
 
 ## 選用的 hook
 
-預設安裝不碰 hook。`install.sh --with-hooks` 才裝（會改專案的 `.claude/settings.json`、`.codex/hooks.json` 與 git 的 `pre-commit`）：
+預設安裝不碰 hook。`install.sh --with-hooks` 才裝，會改專案的 `.claude/settings.json`、`.codex/hooks.json` 與 git 的 `pre-commit`。兩個 agent 的保護機制刻意不同：Claude Code 有靜態權限規則，比 hook 更強；Codex 沒有等價物，只能用 hook。
 
-| 項目 | 做什麼 | Claude Code 與 Codex |
+| 保護 | Claude Code | Codex |
 |---|---|---|
-| `SessionStart` | 把 `STATE.md` 注入上下文，「先讀 `STATE.md`」不再靠 agent 遵守 | **只裝給 Codex**：Claude 已由 `CLAUDE.md` 的 `@STATE.md` 載入，再注入是重複。Codex 另設 `additionalContextLimit` |
-| `PreToolUse`（Bash） | 只擋 push 到 `main`／預設分支與 force push（先剝掉重導向與 `-o` 等帶值選項再解析） | 完全共用 |
-| `PreToolUse`（檔案工具） | 擋改 `AGENTS.md`、`docs/procedures/*.md`、`docs/spec.md`，以及碰 `.env` 與金鑰憑證檔 | 核心共用；Claude 取 `tool_input.file_path`（`Edit`／`Write`／`Read`），Codex 從 `apply_patch` 的 patch 文字解析路徑，差異集中在 `collab_adapters.py` |
-| git `pre-commit` | Markdown 不超過 32 KiB、`STATE.md` 不超過 6 KiB、`CLAUDE.md` 有匯入 `AGENTS.md` 與 `STATE.md`（擋 commit）；文件引用的路徑不存在（只警告） | 與 agent 無關，人與兩個 agent 都適用 |
+| 密鑰與憑證檔（`.env`、`*.pem`、`id_rsa` 等；`.env.example` 等範本除外） | `permissions.deny` 的 `Read(…)` 規則：Claude Code 自己執行，同時涵蓋檔案工具與 Bash 的 `cat`／`sed`／`tee`／重導向、解析 symlink，不會逾時放行 | hook：`apply_patch` 碰到就 `deny`（讀檔走 Bash，不擋） |
+| 改 `AGENTS.md`、`docs/procedures/*.md`、`docs/spec.md` | `permissions.deny` 的 `Edit(/…)` 規則 | hook：從 `apply_patch` 的 patch 文字解析路徑（`collab_adapters.py`） |
+| force push | `permissions.deny` 的 `Bash(git push …)` 規則；hook 再擋一次 | hook |
+| push 到 `main`／預設分支 | hook（靜態規則看不出「目前分支」）：先剝掉重導向與 `-o` 等帶值選項再解析 | 同左，同一份腳本 |
+| GitHub MCP 的 `push_files`、`create_or_update_file`、`delete_file`、`merge_pull_request` | `permissions.deny` 整個擋掉（看不出目標分支）；`--allow-github-mcp-writes` 可關閉 | 未涵蓋 |
+| 開工讀 `STATE.md` | `CLAUDE.md` 的 `@STATE.md` | `SessionStart` hook 注入（另設 `additionalContextLimit`） |
+| 文件檢查 | git `pre-commit`（與 agent 無關）：Markdown 不超過 32 KiB、`STATE.md` 不超過 6 KiB、`CLAUDE.md` 有匯入 `AGENTS.md` 與 `STATE.md`（擋 commit）；文件引用的路徑不存在（只警告） | 同左 |
 
 - 被擋時一律 `deny`：Codex 的 `PreToolUse` 不支援 `ask`（回 `ask` 會讓工具照樣執行）。理由要 agent 用內建問答工具問 user，由 user 自己執行。
-- 專案已明寫放行 push `main` 時加 `--allow-push-main`（force push 與檔案工具的保護仍擋）。
-- 刻意不做：不用正規表示式去猜 Bash 指令會不會改檔或讀 `.env`（又誤擋又漏擋，而且 hook 本來就不是邊界）。Bash 讀 `.env`、改受保護檔不會被擋，靠規則約束；受保護檔只看檔案工具的路徑。
+- `docs/spec.md` 被擋時，agent 改寫 `docs/spec.proposed.md`（不受擋），並在 `QUESTIONS.md` 開一題。
+- 專案已明寫放行 push `main` 時加 `--allow-push-main`（force push 與檔案保護仍擋）。
+- Claude 的 `permissions.deny` 規則由 `merge_hooks.py` 合併：只移除「完全等於我們寫過的規則」再接成連續一段加在最後（`!` 否定規則必須排在被排除的規則後面），使用者其他規則與設定不動；重跑冪等，使用者若刪掉我們的規則，重跑會加回來。
+- 刻意不做：不用正規表示式去猜 Bash 指令會不會改檔或讀 `.env`（又誤擋又漏擋）；Claude 端交給 Claude Code 自己的權限規則。這些規則是指令文字比對，不是安全邊界（`/usr/bin/git push`、`git -C . push`、腳本內自己開檔都繞得過）。
+- Claude 規則裡的 `/AGENTS.md` 這類寫法以「專案設定檔所在專案的主要工作目錄」為起點：在專案子目錄啟動 Claude 時，這些路徑對不到專案根目錄。
 - `--with-hooks` 要求 `--project` 是 git 專案的頂層目錄：hook 與 `pre-commit` 都以 git 根目錄定位腳本，裝在子目錄會全部失效，預檢會中止。
-- Codex 的 hook 要先被使用者信任才會跑：在 Codex 開 `/hooks` 核准；hook 或腳本有變動要重新核准。Claude Code 要接受專案信任對話框。
-- hook 只是護欄：兩邊的文件都說明 hook 逾時或出錯時工具會照常執行。腳本出錯一律以結束碼 1 收場，不用結束碼 2（兩邊都當成「阻擋」）。
-- 需要 `python3`（3.7 以上）與 POSIX `sh`；不支援 Windows 的 `commandWindows`。Codex 端的行為依官方文件模擬驗證，未經 Codex 實機測試。
+- 腳本出錯一律以結束碼 1 收場，不用結束碼 2（兩邊都當成「阻擋」）。hook 只是護欄：兩邊的文件都說明 hook 逾時或出錯時工具會照常執行。
+- 需要 `python3`（3.7 以上）與 POSIX `sh`；不支援 Windows 的 `commandWindows`。Codex 端的行為依官方文件模擬驗證，未經 Codex 實機測試；Claude 的規則語法依官方 permissions 文件撰寫，也未在 Claude Code 上端到端實測。
+
+### Codex 端：裝了不一定生效
+
+下列情況 hook 會**靜默失效**，沒有錯誤訊息，使用者會以為有護欄：
+
+1. **專案沒有被 Codex 信任。** 專案層的 `.codex/hooks.json` 只在受信任的專案載入。
+2. **hook 定義變動後要重新核准。** Codex 以 hook 定義的雜湊記錄信任，新的或變動的 hook 會被標為待審並略過，直到在 `/hooks` 核准。重跑 `install.sh --with-hooks`、改 `--allow-push-main` 都會讓雜湊改變。
+3. **非互動執行（`codex exec`、CI）沒有人可以核准。** 需要先核准過，或明確用 `--dangerously-bypass-hook-trust`；否則這些 hook 不會執行。
+4. **管理員可以關掉。** 設定 `[features].hooks = false`，或 `allow_managed_hooks_only = true`（只載入管理員的 hook，略過專案與使用者的 hook）。
+
+裝完以後，在 Codex 開 `/hooks` 確認列出 collab 的 hook 且已核准。預設沙箱把 `<專案>/.git`、`.codex`、`.agents` 視為唯讀：agent 在沙箱內改不了 hook 設定，但在沙箱內 `git commit` 也需要升權。
+
+### Codex 端：`AGENTS.md` 有 32 KiB 上限
+
+Codex 從專案根目錄往下，把沿途每一層的 `AGENTS.md`（含 `AGENTS.override.md`）串接成一份指示，「combined size reaches the limit defined by `project_doc_max_bytes` (32 KiB by default)」就停止加入後面的檔。這個 kit 的規則檔約 9.8 KiB，所以：
+
+- 專案子目錄自己的 `AGENTS.md` 不要太大，否則後面的內容（越靠近工作目錄越晚加入）會被截掉。
+- 專案專屬的規則寫進 `docs/project-rules.md`，不要都塞進 `AGENTS.md`。
+- 需要時可在 Codex 設定調高 `project_doc_max_bytes`。
 
 ## 改規則的流程
 

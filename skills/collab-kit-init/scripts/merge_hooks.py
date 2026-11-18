@@ -2,7 +2,8 @@
 """把 collab hook 設定冪等地合併進 .claude/settings.json 或 .codex/hooks.json。
 
 用法：
-    merge_hooks.py --target FILE --agent claude|codex [--allow-push-main] (--check | --dry-run | --apply)
+    merge_hooks.py --target FILE --agent claude|codex [--allow-push-main] [--allow-github-mcp-writes]
+                   (--check | --dry-run | --apply)
 
   --check    只驗證既有檔案是不是可合併的 JSON（壞掉結束碼 3，不寫任何東西）
   --dry-run  印出會發生什麼，不寫檔
@@ -11,8 +12,14 @@
 stdout 一行：created、updated<TAB>備份檔路徑、unchanged。
 只動 SessionStart 與 PreToolUse 兩個事件裡「命令含 tools/hooks/collab_hook.py」的項目：先移除舊的、再加新的，
 其他事件、其他項目原封不動；移除後變成空陣列的事件就刪掉那個鍵；重跑結果相同。
-Claude 只裝 PreToolUse（STATE.md 已經由 CLAUDE.md 的 @STATE.md 載入，SessionStart 再注入是重複）；
-Codex 裝 SessionStart 與 PreToolUse。
+Claude：hook 只裝 PreToolUse，而且只看 Bash（STATE.md 已由 CLAUDE.md 的 @STATE.md 載入，SessionStart 再注入是重複）；
+        密鑰檔、受保護檔、force push 改用 permissions.deny 靜態規則（Claude Code 自己執行，deny 優先於 hook，
+        涵蓋檔案工具與 Bash 的 cat／sed／tee／重導向，解析 symlink，不會逾時放行）；
+        hook 只負責靜態規則寫不出來的「目前分支是 main 時的 git push」。
+Codex： 裝 SessionStart 與 PreToolUse（Codex 沒有等價的靜態規則可管檔案編輯）。
+
+permissions.deny 的合併：先移除「完全等於我們可能寫過的規則」，再把這次要的規則接成連續一段加在最後
+（! 否定規則必須排在它要排除的規則後面）；其他規則與其他設定原封不動。
 """
 import json
 import os
@@ -50,14 +57,71 @@ def desired(agent, allow_push_main):
             "SessionStart": [{"matcher": "startup|resume|clear|compact", "hooks": [start]}],
             "PreToolUse": [{"matcher": "Bash|apply_patch", "hooks": [pre]}],
         }
-    return {"PreToolUse": [{"matcher": "Bash|Edit|Write|MultiEdit|Read", "hooks": [pre]}]}
+    return {"PreToolUse": [{"matcher": "Bash", "hooks": [pre]}]}
+
+
+# ---- Claude 的 permissions.deny（路徑寫法見官方 permissions 文件）----
+# /path 以「設定檔所在專案的主要工作目錄」為起點；裸檔名依 gitignore 語意在任何深度都匹配。
+# Read 的 deny 同時擋 Edit／Write；Read／Edit 規則涵蓋 Bash 的 cat、head、tail、sed、tee 與重導向目標。
+DENY_SECRETS = [
+    "Read(.env)",
+    "Read(.env.*)",
+    "Read(!.env.example)",
+    "Read(!.env.sample)",
+    "Read(!.env.template)",
+    "Read(!.env.dist)",
+    "Read(*.pem)",
+    "Read(*.key)",
+    "Read(*.p12)",
+    "Read(*.pfx)",
+    "Read(*.jks)",
+    "Read(*.keystore)",
+    "Read(id_rsa)",
+    "Read(id_dsa)",
+    "Read(id_ecdsa)",
+    "Read(id_ed25519)",
+    "Read(credentials)",
+    "Read(credentials.json)",
+    "Read(.netrc)",
+    "Read(.npmrc)",
+    "Read(.pypirc)",
+]
+DENY_KIT_FILES = [
+    "Edit(/AGENTS.md)",
+    "Edit(/docs/procedures/**)",
+    "Edit(/docs/spec.md)",
+]
+DENY_FORCE_PUSH = [
+    "Bash(git push --force*)",
+    "Bash(git push -f)",
+    "Bash(git push -f *)",
+    "Bash(git push * --force*)",
+    "Bash(git push * -f)",
+    "Bash(git push * -f *)",
+]
+# GitHub MCP 的寫入工具能不經 git push 直接動分支；靜態規則看不出目標分支，所以整個擋掉。
+# MCP 規則不能帶括號（帶括號的會被 Claude Code 略過）。只涵蓋名為 github 的 MCP 伺服器。
+DENY_GITHUB_MCP = [
+    "mcp__github__push_files",
+    "mcp__github__create_or_update_file",
+    "mcp__github__delete_file",
+    "mcp__github__merge_pull_request",
+]
+DENY_ALL = DENY_SECRETS + DENY_KIT_FILES + DENY_FORCE_PUSH + DENY_GITHUB_MCP
+
+
+def desired_deny(allow_github_mcp_writes):
+    rules = DENY_SECRETS + DENY_KIT_FILES + DENY_FORCE_PUSH
+    if not allow_github_mcp_writes:
+        rules = rules + DENY_GITHUB_MCP
+    return rules
 
 
 def is_ours(handler):
     return isinstance(handler, dict) and MARK in str(handler.get("command", ""))
 
 
-def merged(existing, agent, allow_push_main):
+def merged(existing, agent, allow_push_main, allow_github_mcp_writes=False):
     if existing is None:
         existing = {}
     if not isinstance(existing, dict):
@@ -88,6 +152,17 @@ def merged(existing, agent, allow_push_main):
     for event, groups in desired(agent, allow_push_main).items():
         new_hooks.setdefault(event, []).extend(groups)
     result["hooks"] = new_hooks
+    if agent == "claude":
+        permissions = result.get("permissions", {})
+        if not isinstance(permissions, dict):
+            raise ValueError("permissions 不是物件")
+        deny = permissions.get("deny", [])
+        if not isinstance(deny, list) or not all(isinstance(x, str) for x in deny):
+            raise ValueError("permissions.deny 不是字串陣列")
+        kept = [x for x in deny if x not in DENY_ALL]
+        new_deny = kept + desired_deny(allow_github_mcp_writes)
+        permissions = dict(permissions, deny=new_deny)
+        result["permissions"] = permissions
     return result
 
 
@@ -112,7 +187,7 @@ def next_bak(path):
 
 
 def parse(argv):
-    opts = {"target": None, "agent": None, "allow": False, "mode": None}
+    opts = {"target": None, "agent": None, "allow": False, "mcp": False, "mode": None}
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -121,6 +196,9 @@ def parse(argv):
             i += 2
         elif a == "--allow-push-main":
             opts["allow"] = True
+            i += 1
+        elif a == "--allow-github-mcp-writes":
+            opts["mcp"] = True
             i += 1
         elif a in ("--check", "--dry-run", "--apply"):
             opts["mode"] = a[2:]
@@ -141,7 +219,7 @@ def main(argv):
     target = opts["target"]
     try:
         existing, existed = load(target)
-        result = merged(existing, opts["agent"], opts["allow"])
+        result = merged(existing, opts["agent"], opts["allow"], opts["mcp"])
     except (ValueError, UnicodeDecodeError) as exc:
         sys.stderr.write("%s 不是可合併的設定檔：%s\n" % (target, exc))
         return 3
