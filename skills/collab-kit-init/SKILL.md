@@ -38,7 +38,7 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 ```
 
 - 規則一律寫進 `AGENTS.md`，內容不同時舊檔留成 `AGENTS.md.bak`
-- `CLAUDE.md` 或 `AGENTS.md` 是 symlink 時腳本中止（結束碼 3），不寫任何東西：請 user 先決定哪個是真檔。`.bak` 已存在時不覆蓋，改用 `.bak.1`、`.bak.2`
+- 預檢：`CLAUDE.md` 或 `AGENTS.md` 是 symlink、兩者是同一個檔（硬連結）、任何要寫的檔是目錄或斷掉的 symlink 時，腳本中止（結束碼 3），不寫任何東西（含 `--dry-run`）。把問題清單轉給 user 處理。`.bak` 已存在時不覆蓋，改用 `.bak.1`、`.bak.2`
 - `CLAUDE.md` 不存在：新建成 `@AGENTS.md` 與 `@STATE.md` 兩行
 - `CLAUDE.md` 已有單獨一行 `@<路徑>` 匯入：保留原內容，只補缺的 `@AGENTS.md`、`@STATE.md`。原本匯入的其他檔不動；其中若有舊版規則全文，回報會提醒手動移除
 - `CLAUDE.md` 沒有任何 `@` 匯入（規則直接寫在裡面）：換成兩行匯入，舊檔留成 `CLAUDE.md.bak`
@@ -84,7 +84,7 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 
 ## 完成後回報
 
-- `AGENTS.md` 有沒有留 `.bak`（含 `.bak.1`…），`CLAUDE.md` 補了哪些行
+- `AGENTS.md`、`CLAUDE.md` 各自有沒有留 `.bak`（含 `.bak.N`）；`CLAUDE.md` 是補行，還是整份換成兩行；腳本「注意」行列出的其他匯入檔（原文轉給 user，請 user 手動移除其中的舊規則全文）
 - 版本戳的舊值與新值
 - 哪些新建、哪些已存在、哪些被覆寫
 - 步驟 2、3 各項填了什麼，有沒有開成 `QUESTIONS.md` 的題

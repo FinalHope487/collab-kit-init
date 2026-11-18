@@ -20,7 +20,7 @@ usage() {
   --dry-run       只印出會做什麼，不寫檔
 
 規則檔：一律寫進 AGENTS.md（內容不同時舊檔留成 AGENTS.md.bak；.bak 已存在就依序用 .bak.1、.bak.2，不覆蓋）。
-CLAUDE.md 或 AGENTS.md 是 symlink 時中止（結束碼 3），不寫任何東西。
+預檢：CLAUDE.md 或 AGENTS.md 是 symlink、兩者是同一個檔、任何要寫的檔是目錄或斷掉的 symlink 時，中止（結束碼 3），不寫任何東西（含 --dry-run）。
 CLAUDE.md：不存在就新建成 `@AGENTS.md` 與 `@STATE.md` 兩行；已有 `@` 匯入就保留原內容，只補缺的那幾行；
 沒有任何 `@` 匯入（規則直接寫在裡面）就換成兩行匯入，舊檔留成 CLAUDE.md.bak。
 docs/procedures/ 每次整份覆寫。
@@ -44,29 +44,75 @@ done
 [ -d "$PROJECT" ] || { echo "專案目錄不存在: $PROJECT" >&2; exit 2; }
 [ -f "$RULES_SRC" ] || { echo "找不到規則全文: $RULES_SRC" >&2; exit 2; }
 PROJECT="$(cd "$PROJECT" && pwd)"
+# ---- 預檢：任何東西寫下去之前先確認沒有會讓寫入損壞或中途失敗的狀態 ----
+PROBLEMS=""
+problem() { PROBLEMS="${PROBLEMS}  $1
+"; }
 for f in CLAUDE.md AGENTS.md; do
-  if [ -L "$PROJECT/$f" ]; then
-    echo "$f 是 symlink（$(readlink "$PROJECT/$f")）：腳本不寫入，避免 CLAUDE.md 與 AGENTS.md 互相覆蓋、使用者原檔遺失。" >&2
-    echo "請先決定哪個是真檔，把另一個換成一般檔或移除連結，再重跑。" >&2
-    exit 3
+  if [ -L "$PROJECT/$f" ]; then problem "$f 是 symlink（→ $(readlink "$PROJECT/$f")）：寫入會改到連結的另一端，使用者原檔可能遺失"; fi
+done
+if [ -e "$PROJECT/CLAUDE.md" ] && [ -e "$PROJECT/AGENTS.md" ] && [ "$PROJECT/CLAUDE.md" -ef "$PROJECT/AGENTS.md" ]; then
+  problem "CLAUDE.md 與 AGENTS.md 是同一個檔（硬連結或指向同一檔）：寫其中一個會改到另一個"
+fi
+for d in docs docs/plans docs/procedures ROADMAP tools; do
+  if { [ -e "$PROJECT/$d" ] && [ ! -d "$PROJECT/$d" ]; } || { [ -L "$PROJECT/$d" ] && [ ! -e "$PROJECT/$d" ]; }; then
+    problem "$d 不是目錄（或是斷掉的 symlink）：無法在底下建檔"
   fi
 done
+PREFLIGHT_FILES="CLAUDE.md AGENTS.md QUESTIONS.md ROADMAP.md ROADMAP/later.md ROADMAP/parked.md DECISIONS.md STATE.md docs/spec.md docs/plans/README.md docs/project-rules.md docs/testing.md docs/cold-review.md tools/outline.py .collab-kit-version"
+for pf in "$ASSETS"/procedures/*.md; do PREFLIGHT_FILES="$PREFLIGHT_FILES docs/procedures/$(basename "$pf")"; done
+for f in $PREFLIGHT_FILES; do
+  if [ -L "$PROJECT/$f" ] && [ ! -e "$PROJECT/$f" ]; then problem "$f 是斷掉的 symlink"
+  elif [ -e "$PROJECT/$f" ] && [ ! -f "$PROJECT/$f" ]; then problem "$f 存在但不是一般檔案（可能是目錄）"; fi
+done
+if [ -n "$PROBLEMS" ]; then
+  echo "預檢失敗，腳本不寫入任何東西（含 --dry-run）。請先處理下列狀態再重跑：" >&2
+  printf '%s' "$PROBLEMS" >&2
+  exit 3
+fi
 
 # ---- 規則檔：一律寫 AGENTS.md ----
-# 只認整行只有 `@<路徑>` 的一層匯入，略過 HTML 註解與 code fence 裡的行。
+# 只認整行只有 `@<路徑>` 的一層匯入；略過 HTML 註解（含句中開始）、``` 與 ~~~ code fence（同字元、不短於開頭才算關閉）裡的行，並去掉開頭的 UTF-8 BOM。
 CLAUDE_MD="$PROJECT/CLAUDE.md"
 IMPORTS=""
 if [ -f "$CLAUDE_MD" ]; then
   IMPORTS="$(awk '
+    function fence_close(s, ch, len,    t, rest) {
+      if (!match(s, /^[ \t]*(```+|~~~+)/)) return 0
+      t = substr(s, RSTART, RLENGTH); rest = substr(s, RSTART + RLENGTH); sub(/^[ \t]+/, "", t)
+      return substr(t, 1, 1) == ch && length(t) >= len && rest ~ /^[ \t]*$/
+    }
     { sub(/\r$/, "") }
-    /^[[:space:]]*```/ { fence = !fence; next }
-    fence { next }
-    incomment { if (index($0, "-->")) incomment = 0; next }
-    /^[[:space:]]*<!--/ { if (!index($0, "-->")) incomment = 1; next }
-    /^@[^[:space:]]+[[:space:]]*$/ { sub(/^@/, ""); sub(/[[:space:]]+$/, ""); sub(/^(\.\/)+/, ""); print }
+    NR == 1 && index($0, "\357\273\277") == 1 { $0 = substr($0, 4) }
+    fch != "" { if (fence_close($0, fch, flen)) fch = ""; next }
+    {
+      line = $0; out = ""
+      for (;;) {
+        if (incomment) {
+          i = index(line, "-->")
+          if (i == 0) { line = ""; break }
+          line = substr(line, i + 3); incomment = 0
+        } else {
+          i = index(line, "<!--")
+          if (i == 0) break
+          out = out substr(line, 1, i - 1)
+          rest = substr(line, i + 4); j = index(rest, "-->")
+          if (j == 0) { line = ""; incomment = 1; break }
+          line = substr(rest, j + 3)
+        }
+      }
+      line = out line
+      if (match(line, /^[ \t]*(```+|~~~+)/)) {
+        t = substr(line, RSTART, RLENGTH); sub(/^[ \t]+/, "", t)
+        fch = substr(t, 1, 1); flen = length(t); next
+      }
+      if (line ~ /^@[^[:space:]]+[[:space:]]*$/) {
+        sub(/^@/, "", line); sub(/[[:space:]]+$/, "", line); sub(/^(\.\/)+/, "", line); print line
+      }
+    }
   ' "$CLAUDE_MD")"
 fi
-OTHER_IMPORTS="$(printf '%s\n' "$IMPORTS" | grep -vxE 'AGENTS\.md|STATE\.md|' | tr '\n' ' ' || true)"
+OTHER_IMPORTS="$(printf '%s\n' "$IMPORTS" | grep -vxE 'AGENTS\.md|STATE\.md|' | awk '!seen[$0]++' | paste -sd' ' - || true)"
 RULES_REL="AGENTS.md"
 if [ ! -f "$CLAUDE_MD" ]; then RULES_WHY="CLAUDE.md 不存在，新建成匯入檔"
 elif [ -z "$IMPORTS" ]; then RULES_WHY="CLAUDE.md 沒有 @ 匯入；CLAUDE.md 換成匯入檔，舊檔留成 CLAUDE.md.bak"

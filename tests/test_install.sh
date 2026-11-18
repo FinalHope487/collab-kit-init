@@ -148,16 +148,74 @@ P="$WORK/dry2"; mkdir -p "$P"
 bash "$INSTALL" --project "$P" --dry-run > "$WORK/dry2.out" 2>&1
 check "CLAUDE.md 不存在時 --dry-run 印『待建立』" "grep -q '待建立 CLAUDE.md' \"\$WORK/dry2.out\""
 
+echo "== 匯入判斷（續）：~~~ fence、四反引號、BOM、句中註解、重複匯入 =="
+P="$WORK/tilde"; mkdir -p "$P"; git -C "$P" init -q
+printf '~~~\n@AGENTS.md\n@STATE.md\n~~~\n@docs/x.md\n' > "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/tilde.out" 2>&1
+check "~~~ fence 裡的匯入不算數" "[ \"\$(tail -n 2 \"\$P/CLAUDE.md\")\" = \"\$TWO_IMPORTS\" ]"
+P="$WORK/fence4"; mkdir -p "$P"; git -C "$P" init -q
+printf '````\n```\n````\n@AGENTS.md\n' > "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/fence4.out" 2>&1
+check "四反引號 fence 內夾三反引號不翻轉狀態：fence 外的匯入仍算數，不整份換掉" "[ ! -e \"\$P/CLAUDE.md.bak\" ] && grep -qx '@STATE.md' \"\$P/CLAUDE.md\" && [ \"\$(grep -c '^@AGENTS.md\$' \"\$P/CLAUDE.md\")\" = 1 ]"
+P="$WORK/bom"; mkdir -p "$P"; git -C "$P" init -q
+printf '\xef\xbb\xbf@AGENTS.md\n@STATE.md\n' > "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/bom.out" 2>&1
+check "BOM 開頭的 @AGENTS.md 不重複加行" "[ \"\$(grep -c 'AGENTS\\.md' \"\$P/CLAUDE.md\")\" = 1 ]"
+P="$WORK/inc"; mkdir -p "$P"; git -C "$P" init -q
+printf 'text <!-- start\n@AGENTS.md\n-->\n@docs/x.md\n' > "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/inc.out" 2>&1
+check "句中開始的 HTML 註解裡的匯入不算數" "[ \"\$(tail -n 2 \"\$P/CLAUDE.md\")\" = \"\$TWO_IMPORTS\" ]"
+P="$WORK/dupimp"; mkdir -p "$P"; git -C "$P" init -q
+printf '@docs/x.md\n@docs/x.md\n' > "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/dupimp.out" 2>&1
+check "同一個匯入寫兩次，提醒只列一次且沒有多餘空白" "grep -q '另外匯入：docs/x.md。' \"\$WORK/dupimp.out\""
+
+echo "== 預檢：硬連結、目錄、斷掉的 symlink、AGENTS.md 是 symlink =="
+P="$WORK/hard"; mkdir -p "$P"; git -C "$P" init -q
+printf '# rules\nkeep\n' > "$P/CLAUDE.md"; ln "$P/CLAUDE.md" "$P/AGENTS.md"
+bash "$INSTALL" --project "$P" > "$WORK/hard.out" 2>&1; RC=$?
+check "CLAUDE.md 與 AGENTS.md 是硬連結時結束碼 3" "[ $RC -eq 3 ]"
+check "硬連結情況不寫入任何東西" "grep -q 'keep' \"\$P/CLAUDE.md\" && [ ! -e \"\$P/STATE.md\" ] && [ ! -e \"\$P/AGENTS.md.bak\" ]"
+P="$WORK/cdir"; mkdir -p "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/cdir.out" 2>&1; RC=$?
+check "CLAUDE.md 是目錄時結束碼 3，且沒有裝一半（無 AGENTS.md）" "[ $RC -eq 3 ] && [ ! -e \"\$P/AGENTS.md\" ]"
+P="$WORK/adir"; mkdir -p "$P/AGENTS.md"
+bash "$INSTALL" --project "$P" > "$WORK/adir.out" 2>&1; RC=$?
+check "AGENTS.md 是目錄時結束碼 3，規則沒被複製進目錄" "[ $RC -eq 3 ] && [ -z \"\$(ls -A \"\$P/AGENTS.md\")\" ]"
+P="$WORK/dangle"; mkdir -p "$P"; ln -s "$WORK/nowhere.md" "$P/STATE.md"
+bash "$INSTALL" --project "$P" > "$WORK/dangle.out" 2>&1; RC=$?
+check "STATE.md 是斷掉的 symlink 時結束碼 3，且沒有裝一半" "[ $RC -eq 3 ] && [ ! -e \"\$P/AGENTS.md\" ]"
+bash "$INSTALL" --project "$P" --dry-run > "$WORK/dangle2.out" 2>&1; RC=$?
+check "斷掉的 symlink 情況 --dry-run 也中止（乾跑與實跑一致）" "[ $RC -eq 3 ]"
+P="$WORK/asym"; mkdir -p "$P"; git -C "$P" init -q
+printf 'real\n' > "$P/CLAUDE.md"; ln -s CLAUDE.md "$P/AGENTS.md"
+bash "$INSTALL" --project "$P" > "$WORK/asym.out" 2>&1; RC=$?
+check "AGENTS.md 是 symlink 時結束碼 3，CLAUDE.md 原樣" "[ $RC -eq 3 ] && [ \"\$(cat \"\$P/CLAUDE.md\")\" = real ]"
+
+echo "== --dry-run 對既有專案不寫任何東西 =="
+P="$WORK/dryold"; mkdir -p "$P/docs/procedures"; git -C "$P" init -q
+printf '舊規則\n' > "$P/AGENTS.md"; printf '規則在內文\n@docs/x.md\n' > "$P/CLAUDE.md"
+printf '被改過\n' > "$P/docs/procedures/questions.md"; printf '000000000000\n' > "$P/.collab-kit-version"
+before="$(cd "$P" && find . -path ./.git -prune -o -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum)"
+bash "$INSTALL" --project "$P" --dry-run > "$WORK/dryold.out" 2>&1
+after="$(cd "$P" && find . -path ./.git -prune -o -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum)"
+check "既有專案 --dry-run 前後檔案雜湊相同" "[ \"\$before\" = \"\$after\" ]"
+
 echo "== --dry-run =="
 P="$WORK/dry"; mkdir -p "$P"
 bash "$INSTALL" --project "$P" --dry-run > "$WORK/dry.out" 2>&1
 check "--dry-run 不寫任何檔" "[ -z \"\$(ls -A \"\$P\")\" ]"
 
 echo "== kit 本體不依賴外部工具與私人專案 =="
-ext="$(grep -rilE 'chatgpt|codex|sonnet|calculus-visualizer|dreamcore' "$KIT/skills" 2>/dev/null | tr '\n' ' ')"
-check "skills/ 不提指名工具或私人專案名（命中:${ext:- 無}）" "[ -z \"\$ext\" ]"
-priv="$(grep -ilE 'calculus-visualizer|dreamcore|HANDOFF' "$KIT/README.md" 2>/dev/null)"
-check "README 不提私人專案名或已刪的 HANDOFF" "[ -z \"\$priv\" ]"
+if git -C "$KIT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then REPO_FILES="$(git -C "$KIT" ls-files)"; else REPO_FILES="$(cd "$KIT" && find . -type f -not -path './.git/*' | sed 's|^\./||')"; fi
+ext=""
+while IFS= read -r f; do
+  [ "$f" = "tests/test_install.sh" ] && continue
+  if grep -qiE 'chatgpt|codex|sonnet|calculus-visualizer|dreamcore' "$KIT/$f" 2>/dev/null; then ext="$ext$f "; fi
+done <<< "$REPO_FILES"
+check "整個 repo（測試檔本身除外）不提指名工具或私人專案名（命中:${ext:- 無}）" "[ -z \"\$ext\" ]"
+priv="$(grep -il 'HANDOFF' "$KIT/README.md" 2>/dev/null)"
+check "README 不提已刪的 HANDOFF" "[ -z \"\$priv\" ]"
 plat="$(grep -rilE 'AskUserQuestion|subagent' "$ASSETS" "$KIT/skills/collab-kit-init/SKILL.md" 2>/dev/null | tr '\n' ' ')"
 check "assets 與 SKILL.md 不含單一平台專有詞（命中:${plat:- 無}）" "[ -z \"\$plat\" ]"
 check "規則檔第一行就是先讀 STATE.md" "[ \"\$(head -n 1 \"\$RULES_SRC\")\" = '開工第一件事：先讀 \`STATE.md\`。' ]"
@@ -177,6 +235,8 @@ check "QUESTIONS.md 範本有沒有問答工具時的退路" "grep -q '沒有這
 check "delegation.md 觸發條件含另一個 agent 工具" "grep -q '^觸發：.*另一個 agent 工具' \"\$ASSETS/procedures/delegation.md\""
 check "close-round.md 的審查定義照 cold-review.md，不另立標準" "grep -q '照 \`docs/cold-review.md\`' \"\$ASSETS/procedures/close-round.md\" && ! grep -q '不帶先前上下文的審查者審查' \"\$ASSETS/procedures/close-round.md\""
 check "README 與 SKILL.md 不再說 CLAUDE.md『其餘內容不動』" "! grep -q '其餘內容不動' \"\$KIT/README.md\" \"\$KIT/skills/collab-kit-init/SKILL.md\""
+check "規則檔〈必須先問〉涵蓋密鑰與環境變數、對外發送、刪除雲端資源" "grep -q '密鑰與環境變數' \"\$RULES_SRC\" && grep -q '對外發送' \"\$RULES_SRC\" && grep -q '刪除或停用雲端資源' \"\$RULES_SRC\""
+check "規則檔回報第 5 項不把 project-rules.md 當開新 session 的授權" "! grep -q '明列授權後' \"\$RULES_SRC\""
 check "規則檔與程序檔語言規則一致（不寫死中文自然語言）" "! grep -rq '中文自然語言' \"\$ASSETS\""
 
 echo

@@ -12,6 +12,9 @@
 - 消耗付費額度：LLM API、另外啟動的付費 LLM CLI agent、計量收費 API、雲端算力，含訂閱額度。`docs/project-rules.md` 明列核准的外部工具、操作與上限時，範圍內視為已同意，範圍外照樣要問。完全免費的本機測試、本 session 的 fork 與一般子代理不算，後兩者照 `docs/procedures/delegation.md`
 - 可能遺失資料：改資料格式且既有存檔讀不起來（見 `docs/procedures/data-format.md`）、建 migration／db push、刪除或覆蓋既有資料、批次改用戶資料、`git push --force`／`--force-with-lease`
 - 資安暴露：動加密演算法／金鑰處理／認證流程、改權限模型、新增或移除相依套件、deploy／改 production env
+- 密鑰與環境變數：讀取、印出、寫入、提交 `.env` 或憑證類檔案，或把它們傳給外部服務
+- 對外發送：寄信、發訊息、發佈或留言等會讓其他人看到的動作
+- 刪除或停用雲端資源：儲存、資料庫、服務、DNS、帳號
 - 不符合 `docs/procedures/delegation.md` 五項的委派
 - `git push` 到 `main` 或預設分支：除非 `docs/project-rules.md` 明寫放行。其他分支可直接推
 - 新增或放寬 `docs/project-rules.md` 裡的授權（push `main` 放行、外部工具、額度上限）：授權只來自 user 明示的話。不從偵測結果、舊規則檔、`.bak` 或其他文件搬入，也不自己推論
@@ -93,7 +96,7 @@ user 原本要的東西真的能用了才算完成，不是「做完你以為的
 2. 〈代 user 選的〉
 3. `QUESTIONS.md` 全文（若無則寫「無」）
 4. 未做的部分，含沒能力驗的：被權限擋下、環境缺件、少跑的驗證層；驗證跑到哪個規模就寫哪個規模
-5. 有開 fork／子代理，或（經 user 要求、或 `docs/project-rules.md` 明列授權後）交給另一個不同或全新的 session／agent 工具時寫一行：開了幾個、用多少額度、分別做了什麼；外部工具另寫呼叫次數與用途
+5. 有開 fork／子代理，或（經 user 要求）開新 session，或交給 `docs/project-rules.md` 明列的外部 agent 工具時寫一行：開了幾個、用多少額度、分別做了什麼；外部工具另寫呼叫次數與用途
 
 ---
 
