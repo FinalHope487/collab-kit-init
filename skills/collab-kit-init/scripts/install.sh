@@ -19,7 +19,8 @@ usage() {
   --project DIR   專案根目錄（預設：目前工作目錄）
   --dry-run       只印出會做什麼，不寫檔
 
-規則檔：一律寫進 AGENTS.md（內容不同時舊檔留成 AGENTS.md.bak）。
+規則檔：一律寫進 AGENTS.md（內容不同時舊檔留成 AGENTS.md.bak；.bak 已存在就依序用 .bak.1、.bak.2，不覆蓋）。
+CLAUDE.md 或 AGENTS.md 是 symlink 時中止（結束碼 3），不寫任何東西。
 CLAUDE.md：不存在就新建成 `@AGENTS.md` 與 `@STATE.md` 兩行；已有 `@` 匯入就保留原內容，只補缺的那幾行；
 沒有任何 `@` 匯入（規則直接寫在裡面）就換成兩行匯入，舊檔留成 CLAUDE.md.bak。
 docs/procedures/ 每次整份覆寫。
@@ -43,6 +44,13 @@ done
 [ -d "$PROJECT" ] || { echo "專案目錄不存在: $PROJECT" >&2; exit 2; }
 [ -f "$RULES_SRC" ] || { echo "找不到規則全文: $RULES_SRC" >&2; exit 2; }
 PROJECT="$(cd "$PROJECT" && pwd)"
+for f in CLAUDE.md AGENTS.md; do
+  if [ -L "$PROJECT/$f" ]; then
+    echo "$f 是 symlink（$(readlink "$PROJECT/$f")）：腳本不寫入，避免 CLAUDE.md 與 AGENTS.md 互相覆蓋、使用者原檔遺失。" >&2
+    echo "請先決定哪個是真檔，把另一個換成一般檔或移除連結，再重跑。" >&2
+    exit 3
+  fi
+done
 
 # ---- 規則檔：一律寫 AGENTS.md ----
 # 只認整行只有 `@<路徑>` 的一層匯入，略過 HTML 註解與 code fence 裡的行。
@@ -55,7 +63,7 @@ if [ -f "$CLAUDE_MD" ]; then
     fence { next }
     incomment { if (index($0, "-->")) incomment = 0; next }
     /^[[:space:]]*<!--/ { if (!index($0, "-->")) incomment = 1; next }
-    /^@[^[:space:]]+[[:space:]]*$/ { sub(/^@/, ""); sub(/[[:space:]]+$/, ""); print }
+    /^@[^[:space:]]+[[:space:]]*$/ { sub(/^@/, ""); sub(/[[:space:]]+$/, ""); sub(/^(\.\/)+/, ""); print }
   ' "$CLAUDE_MD")"
 fi
 OTHER_IMPORTS="$(printf '%s\n' "$IMPORTS" | grep -vxE 'AGENTS\.md|STATE\.md|' | tr '\n' ' ' || true)"
@@ -72,19 +80,27 @@ report() { REPORT="${REPORT}$(printf '  %-8s %s' "$1" "$2")
 mark_touched() { TOUCHED="${TOUCHED}$1
 "; }
 same_text() { cmp -s <(tr -d '\r' < "$1") <(tr -d '\r' < "$2"); }
+# 已存在的 .bak 不覆蓋：它可能是使用者還沒搬走內容的舊檔。依序用 .bak、.bak.1、.bak.2……
+next_bak() {
+  local base="$1.bak" n=1
+  if [ ! -e "$base" ]; then printf '%s' "$base"; return; fi
+  while [ -e "$base.$n" ]; do n=$((n + 1)); done
+  printf '%s' "$base.$n"
+}
 
 # ---- 規則檔：整份換成規則全文 ----
 if [ -f "$RULES_FILE" ] && same_text "$RULES_FILE" "$RULES_SRC"; then
   report "已是新版" "$RULES_REL"
 elif [ "$DRY" -eq 1 ]; then
-  if [ -f "$RULES_FILE" ]; then report "待換新" "$RULES_REL（舊檔留成 $RULES_REL.bak）"
+  if [ -f "$RULES_FILE" ]; then report "待換新" "$RULES_REL（舊檔留成 $(basename "$(next_bak "$RULES_FILE")")）"
   else report "待建立" "$RULES_REL"; fi
 else
   mkdir -p "$(dirname "$RULES_FILE")"
   if [ -f "$RULES_FILE" ]; then
-    cp "$RULES_FILE" "$RULES_FILE.bak"
-    report "換新" "$RULES_REL（舊檔留成 $RULES_REL.bak）"
-    mark_touched "$RULES_REL.bak"
+    BAK="$(next_bak "$RULES_FILE")"
+    cp "$RULES_FILE" "$BAK"
+    report "換新" "$RULES_REL（舊檔留成 ${BAK#"$PROJECT"/}）"
+    mark_touched "${BAK#"$PROJECT"/}"
   else
     report "建立" "$RULES_REL"
   fi
@@ -93,18 +109,18 @@ else
 fi
 
 # ---- CLAUDE.md：要匯入規則檔與 STATE.md，兩者才會在開工時自動載入 ----
-has_line() { tr -d '\r' < "$2" | grep -qxF -- "$1"; }
+has_import() { printf '%s\n' "$IMPORTS" | grep -qxF -- "$1"; }
 if [ -z "$IMPORTS" ]; then
   WANT="$(printf '@AGENTS.md\n@STATE.md')"
-  if [ -f "$CLAUDE_MD" ] && [ "$(tr -d '\r' < "$CLAUDE_MD")" = "$WANT" ]; then
-    report "已是新版" "CLAUDE.md"
-  elif [ "$DRY" -eq 1 ]; then
-    report "待換新" "CLAUDE.md（改成匯入 @AGENTS.md 與 @STATE.md）"
+  if [ "$DRY" -eq 1 ]; then
+    if [ -f "$CLAUDE_MD" ]; then report "待換新" "CLAUDE.md（改成匯入 @AGENTS.md 與 @STATE.md；舊檔留成 $(basename "$(next_bak "$CLAUDE_MD")")）"
+    else report "待建立" "CLAUDE.md（匯入 @AGENTS.md 與 @STATE.md）"; fi
   else
     if [ -f "$CLAUDE_MD" ]; then
-      cp "$CLAUDE_MD" "$CLAUDE_MD.bak"
-      report "換新" "CLAUDE.md（舊檔留成 CLAUDE.md.bak）"
-      mark_touched "CLAUDE.md.bak"
+      BAK="$(next_bak "$CLAUDE_MD")"
+      cp "$CLAUDE_MD" "$BAK"
+      report "換新" "CLAUDE.md（舊檔留成 ${BAK#"$PROJECT"/}）"
+      mark_touched "${BAK#"$PROJECT"/}"
     else
       report "建立" "CLAUDE.md"
     fi
@@ -112,15 +128,15 @@ if [ -z "$IMPORTS" ]; then
     mark_touched "CLAUDE.md"
   fi
 else
-  for line in "@AGENTS.md" "@STATE.md"; do
-    if has_line "$line" "$CLAUDE_MD"; then
-      report "已匯入" "CLAUDE.md 已有 $line"
+  for target in AGENTS.md STATE.md; do
+    if has_import "$target"; then
+      report "已匯入" "CLAUDE.md 已有 @$target"
     elif [ "$DRY" -eq 1 ]; then
-      report "待加一行" "CLAUDE.md（加 $line）"
+      report "待加一行" "CLAUDE.md（加 @$target）"
     else
       if [ -n "$(tail -c1 "$CLAUDE_MD")" ]; then printf '\n' >> "$CLAUDE_MD"; fi
-      printf '%s\n' "$line" >> "$CLAUDE_MD"
-      report "加一行" "CLAUDE.md（加 $line）"
+      printf '@%s\n' "$target" >> "$CLAUDE_MD"
+      report "加一行" "CLAUDE.md（加 @$target）"
       mark_touched "CLAUDE.md"
     fi
   done

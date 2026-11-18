@@ -109,6 +109,45 @@ cp "$P/CLAUDE.md" "$WORK/other.claude"
 bash "$INSTALL" --project "$P" > "$WORK/other2.out" 2>&1
 check "重跑不再往 CLAUDE.md 加行" "cmp -s \"\$P/CLAUDE.md\" \"\$WORK/other.claude\""
 
+echo "== 匯入判斷：fence、註解、行尾空白、./ 前綴 =="
+P="$WORK/fence"; mkdir -p "$P"; git -C "$P" init -q
+printf '```\n@AGENTS.md\n@STATE.md\n```\n@docs/x.md\n' > "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/fence.out" 2>&1
+check "fence 裡的匯入不算數：補上 @AGENTS.md 與 @STATE.md" "[ \"\$(tail -n 2 \"\$P/CLAUDE.md\")\" = \"\$TWO_IMPORTS\" ]"
+P="$WORK/cmt"; mkdir -p "$P"; git -C "$P" init -q
+printf '<!--\n@AGENTS.md\n-->\n@docs/x.md\n' > "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/cmt.out" 2>&1
+check "HTML 註解裡的匯入不算數" "[ \"\$(tail -n 2 \"\$P/CLAUDE.md\")\" = \"\$TWO_IMPORTS\" ]"
+P="$WORK/trail"; mkdir -p "$P"; git -C "$P" init -q
+printf '@AGENTS.md  \n@docs/x.md\n' > "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/trail.out" 2>&1
+check "行尾空白的 @AGENTS.md 不重複加行" "[ \"\$(grep -c '^@AGENTS\\.md' \"\$P/CLAUDE.md\")\" = 1 ]"
+P="$WORK/dot"; mkdir -p "$P"; git -C "$P" init -q
+printf '@./AGENTS.md\n' > "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/dot.out" 2>&1
+check "@./AGENTS.md 視為 @AGENTS.md，不重複加行" "[ \"\$(grep -c 'AGENTS\\.md' \"\$P/CLAUDE.md\")\" = 1 ]"
+check "@./AGENTS.md 不被當成『另外匯入』提醒" "! grep -q '另外匯入' \"\$WORK/dot.out\""
+
+echo "== symlink 與既有 .bak：不得遺失使用者檔案 =="
+P="$WORK/sym"; mkdir -p "$P"; git -C "$P" init -q
+printf '# my rules\nkeep me\n' > "$P/AGENTS.md"
+ln -s AGENTS.md "$P/CLAUDE.md"
+bash "$INSTALL" --project "$P" > "$WORK/sym.out" 2>&1; RC=$?
+check "CLAUDE.md 是 symlink 時結束碼 3" "[ $RC -eq 3 ]"
+check "symlink 情況不寫入任何東西（AGENTS.md 原樣、無 STATE.md）" "grep -q 'keep me' \"\$P/AGENTS.md\" && [ ! -e \"\$P/STATE.md\" ] && [ ! -e \"\$P/AGENTS.md.bak\" ]"
+bash "$INSTALL" --project "$P" --dry-run > "$WORK/sym2.out" 2>&1; RC=$?
+check "symlink 情況 --dry-run 也中止" "[ $RC -eq 3 ]"
+P="$WORK/bak"; mkdir -p "$P"; git -C "$P" init -q
+printf 'v1\n' > "$P/AGENTS.md"
+bash "$INSTALL" --project "$P" > "$WORK/bak1.out" 2>&1
+printf 'v2\n' > "$P/AGENTS.md"
+bash "$INSTALL" --project "$P" > "$WORK/bak2.out" 2>&1
+check "既有 AGENTS.md.bak 不被覆寫（仍是 v1）" "grep -qx 'v1' \"\$P/AGENTS.md.bak\""
+check "第二份舊檔留成 AGENTS.md.bak.1（v2）" "grep -qx 'v2' \"\$P/AGENTS.md.bak.1\""
+P="$WORK/dry2"; mkdir -p "$P"
+bash "$INSTALL" --project "$P" --dry-run > "$WORK/dry2.out" 2>&1
+check "CLAUDE.md 不存在時 --dry-run 印『待建立』" "grep -q '待建立 CLAUDE.md' \"\$WORK/dry2.out\""
+
 echo "== --dry-run =="
 P="$WORK/dry"; mkdir -p "$P"
 bash "$INSTALL" --project "$P" --dry-run > "$WORK/dry.out" 2>&1

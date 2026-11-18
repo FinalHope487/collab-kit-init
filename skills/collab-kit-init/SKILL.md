@@ -38,6 +38,7 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 ```
 
 - 規則一律寫進 `AGENTS.md`，內容不同時舊檔留成 `AGENTS.md.bak`
+- `CLAUDE.md` 或 `AGENTS.md` 是 symlink 時腳本中止（結束碼 3），不寫任何東西：請 user 先決定哪個是真檔。`.bak` 已存在時不覆蓋，改用 `.bak.1`、`.bak.2`
 - `CLAUDE.md` 不存在：新建成 `@AGENTS.md` 與 `@STATE.md` 兩行
 - `CLAUDE.md` 已有單獨一行 `@<路徑>` 匯入：保留原內容，只補缺的 `@AGENTS.md`、`@STATE.md`。原本匯入的其他檔不動；其中若有舊版規則全文，回報會提醒手動移除
 - `CLAUDE.md` 沒有任何 `@` 匯入（規則直接寫在裡面）：換成兩行匯入，舊檔留成 `CLAUDE.md.bak`
