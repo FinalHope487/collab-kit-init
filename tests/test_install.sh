@@ -237,6 +237,9 @@ check "close-round.md 的審查定義照 cold-review.md，不另立標準" "grep
 check "README 與 SKILL.md 不再說 CLAUDE.md『其餘內容不動』" "! grep -q '其餘內容不動' \"\$KIT/README.md\" \"\$KIT/skills/collab-kit-init/SKILL.md\""
 check "規則檔〈必須先問〉涵蓋密鑰與環境變數、對外發送、刪除雲端資源" "grep -q '密鑰與環境變數' \"\$RULES_SRC\" && grep -q '對外發送' \"\$RULES_SRC\" && grep -q '刪除或停用雲端資源' \"\$RULES_SRC\""
 check "規則檔回報第 5 項不把 project-rules.md 當開新 session 的授權" "! grep -q '明列授權後' \"\$RULES_SRC\""
+check "冷審查有次數上限（最多送審 3 次）與收尾回報、詢問再審" "grep -q '最多送審 3 次' \"\$ASSETS/cold-review.md\" && grep -q '還要不要再審' \"\$ASSETS/cold-review.md\" && grep -q '意見的全文' \"\$ASSETS/cold-review.md\""
+check "規則檔回報納入冷審查結果與詢問" "grep -q '有跑冷審查時' \"\$RULES_SRC\""
+check "STATE.md 停損訊號含資料遺失／誤推送／誤對外發送" "grep -q '資料遺失、誤推送或誤對外發送' \"\$ASSETS/STATE.md\""
 check "規則檔與程序檔語言規則一致（不寫死中文自然語言）" "! grep -rq '中文自然語言' \"\$ASSETS\""
 
 echo
