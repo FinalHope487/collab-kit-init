@@ -25,7 +25,7 @@ REF_CHECKED = re.compile(
     r"|docs/procedures/[^/]+\.md|docs/(plans/README|testing|cold-review|project-rules|spec)\.md)$"
 )
 REF_ALLOW = re.compile(
-    r"^(docs/troubleshooting\.md|docs/environment\.md|docs/specs/.*|docs/plans/.+|\.github/.*|archive/)$"
+    r"^(docs/troubleshooting\.md|docs/environment\.md|docs/spec\.proposed\.md|docs/specs/.*|docs/plans/.+|\.github/.*|archive/)$"
 )
 BACKTICK = re.compile(r"`([^` <>]+)`")
 

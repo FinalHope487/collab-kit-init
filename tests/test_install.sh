@@ -45,7 +45,7 @@ check "project-rules.md 只有開頭註解" \
 
 # kit 裝進專案的每個 Markdown 檔，引用到的路徑都要存在。
 # 例外：用到才建的檔，與規則裡當作檔名家族提到的字。
-ALLOW='^(docs/troubleshooting\.md|docs/environment\.md|docs/specs/.*|docs/plans/.+|\.github/.*|archive/)$'
+ALLOW='^(docs/troubleshooting\.md|docs/environment\.md|docs/spec\.proposed\.md|docs/specs/.*|docs/plans/.+|\.github/.*|archive/)$'
 missing=""
 while IFS= read -r ref; do
   [ -n "$ref" ] || continue
@@ -247,6 +247,7 @@ check "規則檔回報第 5 項不把 project-rules.md 當開新 session 的授�
 check "冷審查有次數上限（最多送審 3 次）與收尾回報、詢問再審" "grep -q '最多送審 3 次' \"\$ASSETS/cold-review.md\" && grep -q '還要不要再審' \"\$ASSETS/cold-review.md\" && grep -q '意見的全文' \"\$ASSETS/cold-review.md\""
 check "規則檔回報納入冷審查結果與詢問" "grep -q '有跑冷審查時' \"\$RULES_SRC\""
 check "STATE.md 停損訊號含資料遺失／誤推送／誤對外發送" "grep -q '資料遺失、誤推送或誤對外發送' \"\$ASSETS/STATE.md\""
+check "規則檔規定改規格寫 docs/spec.proposed.md，由 user 自己套用" "grep -q 'docs/spec.proposed.md' \"\$RULES_SRC\" && grep -q '由 user 自己套用' \"\$RULES_SRC\""
 check "規則檔與程序檔語言規則一致（不寫死中文自然語言）" "! grep -rq '中文自然語言' \"\$ASSETS\""
 
 echo "== hook、pre-commit 與 --with-hooks（tests/test_hooks.py）=="

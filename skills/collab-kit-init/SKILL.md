@@ -95,7 +95,7 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> --with-ho
 - 安裝內容：`tools/hooks/`（共用核心、兩個 agent 的差異轉接、文件檢查）；兩份設定的 hooks 區塊（冪等合併，舊檔留 `.bak`，其他設定不動）；git `pre-commit`（已有別人的 hook 就不覆蓋）
 - hook 做什麼：`SessionStart` 把 `STATE.md` 注入上下文；`PreToolUse` 擋 push 到 `main`／預設分支、force push、讀寫提交 `.env` 與金鑰憑證檔、改 `AGENTS.md`、`docs/procedures/*.md`、`docs/spec.md`；`pre-commit` 檢查 Markdown 不超過 32 KiB、`STATE.md` 不超過 6 KiB、文件引用的路徑存在、`CLAUDE.md` 有匯入
 - 專案已在 `docs/project-rules.md` 明寫放行 push `main` 時加 `--allow-push-main`（force push 與密鑰檔仍擋）。這是 user 在安裝時的明示決定，不要自己判斷
-- 被擋時 hook 一律回 deny（Codex 不支援 ask），理由要 agent 用內建問答工具問 user，由 user 自己執行
+- 被擋時 hook 一律回 deny（Codex 不支援 ask），理由要 agent 用內建問答工具問 user，由 user 自己執行。改 `docs/spec.md` 被擋時，agent 改寫 `docs/spec.proposed.md` 並在 `QUESTIONS.md` 開一題，由 user 自己套用
 - 預檢（symlink、硬連結、目錄、斷掉的 symlink、既有設定檔不是可合併的 JSON）有問題時中止，結束碼 3，不寫任何東西
 - 裝完告訴 user：Codex 要開 `/hooks` 核准這些 hook 才會執行（hook 或腳本有變動要重新核准）；Claude Code 要接受專案信任對話框。hook 只是護欄，兩邊逾時或出錯時工具都會照常執行；Codex 端行為未經實機驗證
 

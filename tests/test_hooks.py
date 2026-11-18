@@ -138,6 +138,17 @@ class CoreHook(unittest.TestCase):
             _, reason = decision(hook("claude", bash_payload(self.repo, command), "--allow-push-main"))
             self.assertEqual(reason is not None, expect_deny, command)
 
+    def test_spec_denial_points_to_proposed_file(self):
+        payload = {"hook_event_name": "PreToolUse", "cwd": self.repo, "tool_name": "Edit",
+                   "tool_input": {"file_path": os.path.join(self.repo, "docs", "spec.md")}}
+        for agent in ("claude", "codex"):
+            if agent == "codex":
+                payload = {"hook_event_name": "PreToolUse", "cwd": self.repo, "tool_name": "apply_patch",
+                           "tool_input": {"command": "*** Begin Patch\n*** Update File: docs/spec.md\n@@\n-a\n+b\n*** End Patch"}}
+            _, reason = decision(hook(agent, payload))
+            self.assertIn("docs/spec.proposed.md", reason)
+            self.assertIn("QUESTIONS.md", reason)
+
     def test_deny_reason_tells_agent_to_ask_user(self):
         _, reason = decision(hook("codex", bash_payload(self.repo, "git push origin main")))
         self.assertIn("user", reason)
@@ -155,6 +166,7 @@ class CoreHook(unittest.TestCase):
             ("Edit", "src/main.py", False),
             ("Edit", "sub/AGENTS.md", False),
             ("Edit", "docs/project-rules.md", False),
+            ("Write", "docs/spec.proposed.md", False),
         ]
         for tool, path, expect_deny in cases:
             payload = {
@@ -177,6 +189,7 @@ class CoreHook(unittest.TestCase):
             (patch("src/a.py", "docs/procedures/chores.md"), True),
             (patch("src/a.py"), False),
             (patch("docs/project-rules.md"), False),
+            (patch("docs/spec.proposed.md"), False),
         ]
         for text, expect_deny in cases:
             payload = {

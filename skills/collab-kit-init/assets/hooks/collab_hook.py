@@ -51,8 +51,8 @@ REASON_KIT = (
     "專案專屬的規則寫進 docs/project-rules.md；要改規則檔本身，請 user 修改 kit 後重裝。"
 )
 REASON_SPEC = (
-    "docs/spec.md（公開契約與驗收）只由 user 修改。"
-    "需要變更規格時，在 QUESTIONS.md 開一題交給 user。"
+    "docs/spec.md（公開契約與驗收）只由 user 修改，user 要求你改時也一樣。"
+    "請把建議的新內容寫進 docs/spec.proposed.md，並在 QUESTIONS.md 開一題，由 user 自己套用。"
 )
 
 # 檔名（basename）符合就視為密鑰或憑證類檔案。.env.example 之類的範本不算。
