@@ -213,14 +213,15 @@ while IFS= read -r f; do
   [ "$f" = "tests/test_install.sh" ] && continue
   [ "$f" = "tests/test_hooks.py" ] && continue
   case "$f" in
-    # hook 要同時支援 Codex，這些檔必然出現 .codex／--agent codex；其餘仍禁止 codex
+    # hook 要同時支援 Codex，這幾個檔必然出現 .codex／--agent codex；其餘仍禁止 codex。
+    # README.md 與 SKILL.md 只允許在選用 hook 的章節提 Codex，由 tests/test_hooks.py 逐章節檢查。
     skills/collab-kit-init/assets/hooks/*|skills/collab-kit-init/scripts/merge_hooks.py|skills/collab-kit-init/scripts/install.sh|skills/collab-kit-init/SKILL.md|README.md)
-      pat='chatgpt|sonnet|calculus-visualizer|dreamcore' ;;
-    *) pat='chatgpt|codex|sonnet|calculus-visualizer|dreamcore' ;;
+      pat='chatgpt|sonnet' ;;
+    *) pat='chatgpt|codex|sonnet' ;;
   esac
   if grep -qiE "$pat" "$KIT/$f" 2>/dev/null; then ext="$ext$f "; fi
 done <<< "$REPO_FILES"
-check "整個 repo 不提 chatgpt／sonnet／私人專案名；codex 只允許出現在 hook 相關檔（命中請見括號）（命中:${ext:- 無}）" "[ -z \"\$ext\" ]"
+check "整個 repo 不提 chatgpt／sonnet；codex 只允許出現在 hook 相關檔（命中請見括號）（命中:${ext:- 無}）" "[ -z \"\$ext\" ]"
 priv="$(grep -il 'HANDOFF' "$KIT/README.md" 2>/dev/null)"
 check "README 不提已刪的 HANDOFF" "[ -z \"\$priv\" ]"
 plat="$(grep -rilE 'AskUserQuestion|subagent' "$ASSETS" "$KIT/skills/collab-kit-init/SKILL.md" 2>/dev/null | tr '\n' ' ')"

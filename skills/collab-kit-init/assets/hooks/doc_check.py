@@ -4,10 +4,12 @@
 只檢查這次暫存的檔案：
   1. 任意 Markdown 不超過 32 KiB
   2. STATE.md 不超過 6 KiB
-  3. 專案文件（STATE.md、DECISIONS.md、QUESTIONS.md、ROADMAP、docs/procedures 等）裡用反引號寫的檔案路徑都存在
-  4. CLAUDE.md 有匯入 AGENTS.md 與 STATE.md（CLAUDE.md 或 AGENTS.md 這次有動時才查）
+  3. CLAUDE.md 有匯入 AGENTS.md 與 STATE.md（CLAUDE.md 或 AGENTS.md 這次有動時才查）
+  以上有問題時列出全部、以結束碼 1 擋下 commit；確定要略過時用 git commit --no-verify。
 
-有問題時列出全部、以結束碼 1 擋下 commit；確定要略過時用 git commit --no-verify。
+另外有一項只警告、不擋 commit：專案文件（STATE.md、DECISIONS.md、QUESTIONS.md、ROADMAP、
+docs/procedures 等）裡用反引號寫的檔案路徑不存在。反引號裡的字串可能是分支名、URL 路徑或
+尚未建立的規劃路徑，誤報率高，不適合擋 commit。以 / 開頭的絕對路徑不檢查。
 腳本自己出錯（git 失敗等）也以 1 結束並說明原因：不能靜默放行，也不吞錯。
 """
 import os
@@ -101,7 +103,7 @@ def referenced_paths(text):
             continue
         if re.match(r"^(cd |-|git|npm|node|https?:)", token):
             continue
-        if re.search(r"[*$…／]", token):
+        if re.search(r"[*$…／]", token) or token.startswith("/"):
             continue
         token = re.sub(r"[#:].*$", "", token)
         if token and not REF_ALLOW.match(token):
@@ -114,7 +116,7 @@ def run():
     os.chdir(root)
     files = staged_files()
     tracked = set(git(["ls-files", "--cached", "-z"], text=False).decode("utf-8", "replace").split("\0"))
-    problems = []
+    problems, warnings = [], []
 
     for path in files:
         size = len(staged_blob(path))
@@ -129,7 +131,7 @@ def run():
         text = staged_blob(path).decode("utf-8", "replace")
         for ref in referenced_paths(text):
             if not (os.path.exists(ref) or ref in tracked):
-                problems.append("%s 引用的 %s 不存在" % (path, ref))
+                warnings.append("%s 引用的 %s 不存在（只警告，不擋 commit）" % (path, ref))
 
     if ("CLAUDE.md" in files or "AGENTS.md" in files) and os.path.isfile("CLAUDE.md"):
         with open("CLAUDE.md", "rb") as handle:
@@ -138,6 +140,10 @@ def run():
             if need not in found:
                 problems.append("CLAUDE.md 沒有整行 @%s 匯入" % need)
 
+    if warnings:
+        sys.stderr.write("collab pre-commit 警告：\n")
+        for item in warnings:
+            sys.stderr.write("  - %s\n" % item)
     if problems:
         sys.stderr.write("collab pre-commit：%d 個問題（確定要略過時用 git commit --no-verify）\n" % len(problems))
         for item in problems:

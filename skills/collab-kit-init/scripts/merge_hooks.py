@@ -9,7 +9,10 @@
   --apply    寫入；既有檔案內容有變時，舊檔先留成 .bak（已存在就用 .bak.1、.bak.2……）
 
 stdout 一行：created、updated<TAB>備份檔路徑、unchanged。
-只動「命令含 tools/hooks/collab_hook.py」的項目：先移除舊的、再加新的，其他項目原封不動；重跑結果相同。
+只動 SessionStart 與 PreToolUse 兩個事件裡「命令含 tools/hooks/collab_hook.py」的項目：先移除舊的、再加新的，
+其他事件、其他項目原封不動；移除後變成空陣列的事件就刪掉那個鍵；重跑結果相同。
+Claude 只裝 PreToolUse（STATE.md 已經由 CLAUDE.md 的 @STATE.md 載入，SessionStart 再注入是重複）；
+Codex 裝 SessionStart 與 PreToolUse。
 """
 import json
 import os
@@ -33,20 +36,21 @@ def command(agent, allow_push_main):
     return "sh -c '%s; %s; exec python3 \"$f\" --agent %s%s'" % (base, _SCRIPT_CHECK, agent, extra)
 
 
+OUR_EVENTS = ("SessionStart", "PreToolUse")
+
+
 def desired(agent, allow_push_main):
     cmd = command(agent, allow_push_main)
-    start = {"type": "command", "command": cmd, "timeout": 10, "statusMessage": "載入 STATE.md"}
     pre = {"type": "command", "command": cmd, "timeout": 10, "statusMessage": "檢查 collab 規則"}
     if agent == "codex":
+        start = {"type": "command", "command": cmd, "timeout": 10, "statusMessage": "載入 STATE.md"}
         # Codex 預設只讓每個 hook 的 additionalContext 佔約 2500 token，STATE.md 可能被截成預覽。
         start["additionalContextLimit"] = 6000
-        tool_matcher = "Bash|apply_patch"
-    else:
-        tool_matcher = "Bash|Edit|Write|MultiEdit|Read"
-    return {
-        "SessionStart": [{"matcher": "startup|resume|clear|compact", "hooks": [start]}],
-        "PreToolUse": [{"matcher": tool_matcher, "hooks": [pre]}],
-    }
+        return {
+            "SessionStart": [{"matcher": "startup|resume|clear|compact", "hooks": [start]}],
+            "PreToolUse": [{"matcher": "Bash|apply_patch", "hooks": [pre]}],
+        }
+    return {"PreToolUse": [{"matcher": "Bash|Edit|Write|MultiEdit|Read", "hooks": [pre]}]}
 
 
 def is_ours(handler):
@@ -66,16 +70,21 @@ def merged(existing, agent, allow_push_main):
     for event, groups in hooks.items():
         if not isinstance(groups, list):
             raise ValueError("hooks.%s 不是陣列" % event)
-        kept = []
+        if event not in OUR_EVENTS:
+            new_hooks[event] = groups
+            continue
+        kept, removed = [], False
         for group in groups:
             if isinstance(group, dict) and isinstance(group.get("hooks"), list):
                 handlers = [h for h in group["hooks"] if not is_ours(h)]
                 if len(handlers) != len(group["hooks"]):
+                    removed = True
                     if not handlers:
                         continue
                     group = dict(group, hooks=handlers)
             kept.append(group)
-        new_hooks[event] = kept
+        if kept or not removed:
+            new_hooks[event] = kept
     for event, groups in desired(agent, allow_push_main).items():
         new_hooks.setdefault(event, []).extend(groups)
     result["hooks"] = new_hooks

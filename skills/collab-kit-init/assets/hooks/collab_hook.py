@@ -5,12 +5,14 @@
     collab_hook.py --agent claude|codex [--allow-push-main]
 
 事件：
-  SessionStart  把專案根目錄的 STATE.md 以純文字 stdout 注入上下文（兩邊都會成為上下文）
-  PreToolUse    依〈必須先問 user〉擋下：
-                  - git push 到 main／預設分支（--allow-push-main 時略過這一條）
-                  - force push
-                  - 讀取、寫入、提交 .env 與金鑰、憑證類檔案
-                  - 改動 kit 擁有的檔（AGENTS.md、docs/procedures/*.md）與 docs/spec.md
+  SessionStart  把專案根目錄的 STATE.md 以純文字 stdout 注入上下文（只裝給 Codex；
+                Claude 已經由 CLAUDE.md 的 @STATE.md 載入，再注入是重複）
+  PreToolUse    - Bash：只擋 git push 到 main／預設分支（--allow-push-main 時略過）與 force push
+                - 檔案工具（Claude 的 Edit／Write／Read、Codex 的 apply_patch）：
+                  擋改 AGENTS.md、docs/procedures/*.md、docs/spec.md，以及碰 .env 與金鑰、憑證類檔案
+
+刻意不做的事：不用正規表示式去猜 Bash 指令會不會改檔或讀密鑰檔。那種偵測又誤擋又漏擋，
+而且 hook 本來就不是強制邊界；受保護的檔案只看檔案工具的路徑。
 
 只輸出兩邊共同支援的合約：阻擋用 hookSpecificOutput.permissionDecision = "deny"。
 Codex 不支援 "ask"（回 ask 會讓工具照樣執行），所以一律 deny，理由裡寫明
@@ -76,11 +78,9 @@ _WORD = re.compile(r"[^\s'\"`<>|;&()=]+")
 _PUSH = re.compile(
     r"\bgit\b((?:\s+(?:-C\s+\S+|-c\s+\S+|--[A-Za-z][\w-]*(?:=\S+)?|-[pP]))*)\s+push\b([^;&|\n]*)"
 )
-_WRITE_INTENT = re.compile(
-    r">>?\s*\S|\btee\b|\bsed\b[^;&|\n]*\s-[A-Za-z]*i|\bperl\b[^;&|\n]*\s-[A-Za-z]*i"
-    r"|\b(?:mv|cp|rm|truncate|install|ln|dd)\b"
-)
-_SAFE_FIRST_WORDS = ("ls", "stat", "test", "[", "[[")
+# 帶值的 git push 選項：值不是 refspec，要跳過
+_PUSH_OPTS_WITH_VALUE = ("-o", "--push-option", "--repo", "--receive-pack", "--exec")
+_REDIRECT = re.compile(r"\d*[<>]+&?\d*")
 
 
 def fail(message):
@@ -126,13 +126,26 @@ def project_root(cwd):
     return git(["rev-parse", "--show-toplevel"], cwd) or cwd
 
 
-def rel_to_root(path, cwd, root):
-    """路徑換成相對專案根目錄的正斜線形式；在專案外回傳 None。"""
+def rels_to_root(path, cwd, root):
+    """路徑換成相對專案根目錄的正斜線形式清單（在專案外的不列入）。
+
+    兩邊都解析 symlink：git 回傳的是實體路徑，cwd 或檔案路徑若經過 symlink 就會對不上。
+    清單含兩種：「只解析父目錄」（保留最後一段檔名，抓得到直接改受保護檔）與「完整解析」
+    （抓得到受保護檔本身是 symlink 的情況）。
+    """
     full = path if os.path.isabs(path) else os.path.join(cwd, path)
-    rel = os.path.relpath(os.path.normpath(full), root).replace(os.sep, "/")
-    if rel == ".." or rel.startswith("../"):
-        return None
-    return rel
+    full = os.path.normpath(full)
+    real_root = os.path.realpath(root)
+    candidates = {
+        os.path.join(os.path.realpath(os.path.dirname(full)), os.path.basename(full)),
+        os.path.realpath(full),
+    }
+    rels = []
+    for candidate in candidates:
+        rel = os.path.relpath(candidate, real_root).replace(os.sep, "/")
+        if rel != ".." and not rel.startswith("../"):
+            rels.append(rel)
+    return rels
 
 
 def is_secret_name(path):
@@ -158,8 +171,23 @@ def protected_branches(cwd):
 
 def check_push(command, cwd, allow_push_main):
     for match in _PUSH.finditer(command):
-        args = [t.strip("'\")") for t in match.group(2).split()]
-        args = [t for t in args if t]
+        raw = [t.strip("'\")") for t in match.group(2).split()]
+        args, skip = [], False
+        for t in raw:
+            if skip:
+                skip = False
+                continue
+            if not t:
+                continue
+            if _REDIRECT.fullmatch(t):  # `>`、`2>`、`>>` 後面跟的是目標檔
+                skip = not re.search(r"&\d*$", t)
+                continue
+            if re.match(r"\d*[<>]", t):  # `2>/dev/null` 這類目標黏在一起
+                continue
+            if t in _PUSH_OPTS_WITH_VALUE:
+                skip = True
+                continue
+            args.append(t)
         force = False
         for t in args:
             if t in ("--force", "-f", "--mirror") or t.startswith(
@@ -196,25 +224,7 @@ def check_push(command, cwd, allow_push_main):
 
 
 def check_shell(command, cwd, root, allow_push_main):
-    reason = check_push(command, cwd, allow_push_main)
-    if reason:
-        return reason
-    words = _WORD.findall(command)
-    first = words[0] if words else ""
-    ignore_edit = ".gitignore" in command or ".dockerignore" in command
-    if first not in _SAFE_FIRST_WORDS and not ignore_edit:
-        if any(is_secret_name(w) for w in words):
-            return REASON_SECRET
-    if _WRITE_INTENT.search(command):
-        for word in words:
-            if "/" not in word and "." not in word:
-                continue
-            rel = rel_to_root(word, cwd, root)
-            if rel:
-                reason = protected_reason(rel)
-                if reason:
-                    return reason
-    return None
+    return check_push(command, cwd, allow_push_main)
 
 
 def check_files(agent, tool_name, tool_input, cwd, root):
@@ -223,8 +233,7 @@ def check_files(agent, tool_name, tool_input, cwd, root):
         if is_secret_name(path):
             return REASON_SECRET
         if action == "edit":
-            rel = rel_to_root(path, cwd, root)
-            if rel:
+            for rel in rels_to_root(path, cwd, root):
                 reason = protected_reason(rel)
                 if reason:
                     return reason

@@ -17,11 +17,12 @@ ALLOW_PUSH_MAIN=0
 
 usage() {
   cat <<'USAGE'
-用法: install.sh [--project DIR] [--dry-run]
+用法: install.sh [--project DIR] [--dry-run] [--with-hooks [--allow-push-main]]
 
   --project DIR   專案根目錄（預設：目前工作目錄）
   --dry-run       只印出會做什麼，不寫檔
-  --with-hooks    另外安裝 agent hook 與 git pre-commit（預設不裝，裝之前要 user 同意）：
+  --with-hooks    另外安裝 agent hook 與 git pre-commit（預設不裝，裝之前要 user 同意；
+                  --project 必須是 git 專案的頂層目錄）：
                     tools/hooks/、.claude/settings.json 與 .codex/hooks.json 的 hooks 區塊（冪等合併，舊檔留 .bak）、
                     git 的 pre-commit（已有別人的 hook 就不覆蓋）
   --allow-push-main  只和 --with-hooks 併用：專案已明寫放行 push main 時，hook 不擋 push main
@@ -89,6 +90,18 @@ if [ "$WITH_HOOKS" -eq 1 ]; then
     if [ -L "$PROJECT/$f" ]; then problem "$f 是 symlink：腳本不寫入設定檔或 hook 腳本的連結"
     elif [ -e "$PROJECT/$f" ] && [ ! -f "$PROJECT/$f" ]; then problem "$f 存在但不是一般檔案"; fi
   done
+  GIT_TOP="$(git -C "$PROJECT" rev-parse --show-toplevel 2>/dev/null || true)"
+  if [ -z "$GIT_TOP" ]; then
+    problem "--with-hooks 需要 git 專案：Codex 的 hook 與 pre-commit 都以 git 根目錄定位腳本（先 git init）"
+  elif [ "$(cd "$GIT_TOP" && pwd -P)" != "$(cd "$PROJECT" && pwd -P)" ]; then
+    problem "--project 不是 git 專案的頂層目錄（頂層是 $GIT_TOP）：hook 以 git 根目錄找腳本，裝在子目錄會全部失效。請對頂層目錄安裝"
+  else
+    GIT_HOOKS_DIR="$(git -C "$PROJECT" rev-parse --git-path hooks)"
+    case "$GIT_HOOKS_DIR" in /*) ;; *) GIT_HOOKS_DIR="$PROJECT/$GIT_HOOKS_DIR" ;; esac
+    if { [ -e "$GIT_HOOKS_DIR" ] && [ ! -d "$GIT_HOOKS_DIR" ]; } || { [ -L "$GIT_HOOKS_DIR" ] && [ ! -e "$GIT_HOOKS_DIR" ]; }; then
+      problem "git hooks 目錄 $GIT_HOOKS_DIR 不是目錄（或是斷掉的 symlink）：無法安裝 pre-commit"
+    fi
+  fi
   if [ -z "$PROBLEMS" ]; then
     for spec in ".claude/settings.json:claude" ".codex/hooks.json:codex"; do
       if ! out="$(python3 "$MERGE_HOOKS" --target "$PROJECT/${spec%%:*}" --agent "${spec##*:}" --check 2>&1)"; then
@@ -295,30 +308,29 @@ if [ "$WITH_HOOKS" -eq 1 ]; then
       *) echo "merge_hooks.py 回傳了無法辨識的結果：$mout" >&2; exit 1 ;;
     esac
   done
-  # git pre-commit：只覆寫自己裝的（檔內有標記）；已有別人的 hook 就不動
+  # git pre-commit：只覆寫自己裝的（檔內有標記）；內容不同時舊檔先留成 .bak.N；已有別人的 hook 就不動
   HOOK_SRC="$ASSETS/hooks/pre-commit"
-  if ! git -C "$PROJECT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    report "略過" "pre-commit（不是 git repo）"
-  else
-    GIT_HOOKS_DIR="$(git -C "$PROJECT" rev-parse --git-path hooks)"
-    case "$GIT_HOOKS_DIR" in /*) ;; *) GIT_HOOKS_DIR="$PROJECT/$GIT_HOOKS_DIR" ;; esac
-    HOOK_DEST="$GIT_HOOKS_DIR/pre-commit"
-    if [ -e "$HOOK_DEST" ] || [ -L "$HOOK_DEST" ]; then
-      if [ -f "$HOOK_DEST" ] && [ ! -L "$HOOK_DEST" ] && grep -q 'collab-kit-init pre-commit' "$HOOK_DEST"; then
-        if same_text "$HOOK_DEST" "$HOOK_SRC"; then report "已是新版" "git pre-commit"
-        elif [ "$DRY" -eq 1 ]; then report "待覆寫" "git pre-commit"
-        else cp "$HOOK_SRC" "$HOOK_DEST"; chmod +x "$HOOK_DEST"; report "覆寫" "git pre-commit"; fi
+  HOOK_DEST="$GIT_HOOKS_DIR/pre-commit"
+  if [ -e "$HOOK_DEST" ] || [ -L "$HOOK_DEST" ]; then
+    if [ -f "$HOOK_DEST" ] && [ ! -L "$HOOK_DEST" ] && grep -q 'collab-kit-init pre-commit' "$HOOK_DEST"; then
+      if same_text "$HOOK_DEST" "$HOOK_SRC"; then report "已是新版" "git pre-commit"
+      elif [ "$DRY" -eq 1 ]; then report "待覆寫" "git pre-commit（舊檔留成 $(basename "$(next_bak "$HOOK_DEST")")）"
       else
-        report "略過" "git pre-commit：已有別的 hook，不覆蓋。請在它裡面加一行 python3 tools/hooks/doc_check.py"
+        HBAK="$(next_bak "$HOOK_DEST")"
+        cp "$HOOK_DEST" "$HBAK"
+        cp "$HOOK_SRC" "$HOOK_DEST"; chmod +x "$HOOK_DEST"
+        report "覆寫" "git pre-commit（舊檔留成 $(basename "$HBAK")）"
       fi
-    elif [ "$DRY" -eq 1 ]; then
-      report "待建立" "git pre-commit"
     else
-      mkdir -p "$GIT_HOOKS_DIR"; cp "$HOOK_SRC" "$HOOK_DEST"; chmod +x "$HOOK_DEST"; report "建立" "git pre-commit"
+      report "略過" "git pre-commit：已有別的 hook，不覆蓋。請在它裡面加一行 python3 tools/hooks/doc_check.py"
     fi
+  elif [ "$DRY" -eq 1 ]; then
+    report "待建立" "git pre-commit"
+  else
+    mkdir -p "$GIT_HOOKS_DIR"; cp "$HOOK_SRC" "$HOOK_DEST"; chmod +x "$HOOK_DEST"; report "建立" "git pre-commit"
   fi
 fi
-# 版本戳＝kit 擁有的檔（規則全文＋程序檔）的內容雜湊。不用 git 短碼：skill 被複製進專案後，git 會回報專案自己的 commit。
+# 版本戳＝kit 擁有的檔（規則全文＋程序檔＋hook 檔）的內容雜湊；hook 檔有改，所有專案的版本戳都會變。不用 git 短碼：skill 被複製進專案後，git 會回報專案自己的 commit。
 KIT_VER="$(cat "$RULES_SRC" "$ASSETS"/procedures/*.md "$ASSETS"/hooks/* | tr -d '\r' | md5sum | cut -c1-12)"
 VER_FILE="$PROJECT/.collab-kit-version"
 OLD_VER=""
