@@ -2,13 +2,14 @@
 
 核心（collab_hook.py）只呼叫這個模組，不直接判斷是哪個 agent。
 共用的部分（兩邊格式相同）：
-  - Bash 工具：tool_input.command 是指令字串
+  - Bash 工具：tool_input.command 是指令（字串；有些版本是陣列，shell_command 會接成字串）
 需要各自處理的部分：
   - 改檔工具：Claude 的 Edit／Write 給 tool_input.file_path；
     Codex 的 apply_patch 給 tool_input.command，內容是整段 patch 文字
   - 讀檔工具：Claude 有 Read 工具；Codex 讀檔走 Bash，沒有 Read
 """
 import re
+import shlex
 
 SHELL_TOOLS = ("Bash", "PowerShell")
 
@@ -22,11 +23,18 @@ _PATCH_HEADER = re.compile(
 
 
 def shell_command(agent, tool_name, tool_input):
-    """回傳要檢查的 shell 指令字串；不是 shell 工具就回傳 None。"""
+    """回傳要檢查的 shell 指令字串；不是 shell 工具就回傳 None。
+
+    官方文件只說 Bash 的 tool_input.command 是指令，沒有說型別。shell 工具有些版本把指令
+    寫成陣列（例如 ["bash", "-lc", "git push origin main"]），陣列就逐項加引號接成一個字串，
+    交給核心用同一套規則檢查，不能因為型別不是字串就整個放行。
+    """
     if tool_name in SHELL_TOOLS and isinstance(tool_input, dict):
         command = tool_input.get("command")
         if isinstance(command, str):
             return command
+        if isinstance(command, list) and command and all(isinstance(x, str) for x in command):
+            return " ".join(shlex.quote(x) for x in command)
     return None
 
 

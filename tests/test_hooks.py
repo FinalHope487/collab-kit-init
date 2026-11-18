@@ -132,6 +132,29 @@ class CoreHook(unittest.TestCase):
         "git add .env",
     ]
 
+    def test_command_given_as_list_is_checked_like_a_string(self):
+        cases = [
+            (["bash", "-lc", "git push origin main"], True),
+            (["git", "push", "origin", "main"], True),
+            (["git", "push", "--force", "origin", "feature"], True),
+            (["bash", "-lc", "git push origin feature"], False),
+            (["git", "status"], False),
+        ]
+        for command, expect_deny in cases:
+            for agent in ("claude", "codex"):
+                payload = {"hook_event_name": "PreToolUse", "cwd": self.repo, "tool_name": "Bash",
+                           "tool_input": {"command": command}}
+                code, reason = decision(hook(agent, payload))
+                self.assertEqual(code, 0, command)
+                self.assertEqual(reason is not None, expect_deny, (agent, command))
+
+    def test_malformed_command_types_pass_without_crashing(self):
+        for command in (None, 5, {"a": 1}, [], [1, 2], ["git", 3]):
+            payload = {"hook_event_name": "PreToolUse", "cwd": self.repo, "tool_name": "Bash",
+                       "tool_input": {"command": command}}
+            done = hook("codex", payload)
+            self.assertEqual((done.returncode, done.stdout), (0, ""), command)
+
     def test_bash_does_not_guess_reads_or_writes(self):
         for command in self.BASH_NOT_GUESSED:
             for agent in ("claude", "codex"):
