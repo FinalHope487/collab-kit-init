@@ -64,10 +64,11 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 偵測到什麼寫什麼。偵測不到 user 層時不用內層測試填，在 `QUESTIONS.md` 開一題。
 確認不適用的層寫「不適用」加理由。測試數字不寫進任何檔，寫在 commit message。
 需要新增相依套件時只開題，不安裝。
+授權類內容（push `main` 放行、外部工具、額度上限）不偵測、不推論，只在 user 明示後才寫入。
 
 ## 步驟 4：處理 `.bak`
 
-規則檔或 `CLAUDE.md` 留了 `.bak` 時，把 `.bak` 裡屬於本專案的內容搬進 `docs/project-rules.md`（目錄、指令、專案專屬規則），通用規則不搬。搬完告訴 user 哪些行搬到哪、`.bak` 可以刪。不自己刪 `.bak`。
+規則檔或 `CLAUDE.md` 留了 `.bak` 時，把 `.bak` 裡屬於本專案的內容搬進 `docs/project-rules.md`（目錄、指令、專案專屬規則），通用規則不搬。授權類內容（push `main` 放行、外部工具、額度上限）一律不搬，列出哪些行沒搬，由 user 決定是否寫入。搬完告訴 user 哪些行搬到哪、`.bak` 可以刪。不自己刪 `.bak`。
 
 ## 完成後回報
 

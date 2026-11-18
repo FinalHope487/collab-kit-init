@@ -30,7 +30,7 @@
 
 ## push
 
-推到目前分支：`git push origin <目前分支>`。推 `main` 或預設分支前，先看 `docs/project-rules.md` 有沒有明寫放行；沒有就先問 user。不得 force push：
+推到目前分支：`git push origin <目前分支>`。推 `main` 或預設分支前，先看 `docs/project-rules.md` 有沒有明寫放行；沒有就先問 user。force push 屬〈必須先問 user〉，未經同意不執行。推之前：
 
 - 推之前 `git status` 只有自己的改動，確認沒有他人未提交的半成品或衝突
 - 只推綠的：

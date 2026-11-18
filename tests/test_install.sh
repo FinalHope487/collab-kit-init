@@ -110,6 +110,9 @@ auto="$(grep -rlE '每次開工自動載入|只自動載入|已自動載入，�
 check "沒有文件假設 STATE.md 一定自動載入（命中:${auto:- 無}）" "[ -z \"\$auto\" ]"
 check "冷審查有不依賴外部工具的備援（未經獨立審查）" "grep -q '未經獨立審查' \"\$ASSETS/cold-review.md\""
 check "規則檔不含 push main 永遠／一律放行" "! grep -qE 'push \`?main\`? *(永遠|一律)放行' \"\$RULES_SRC\""
+check "規則檔規定授權只來自 user 明示" "grep -q '授權只來自 user 明示' \"\$RULES_SRC\""
+check "SKILL.md 規定授權類內容不從 .bak 搬" "grep -q '授權類內容.*一律不搬' \"\$KIT/skills/collab-kit-init/SKILL.md\""
+check "force push 只有一種說法（不再寫「不得 force push」）" "! grep -rq '不得 force push' \"\$ASSETS\""
 check "規則檔與程序檔語言規則一致（不寫死中文自然語言）" "! grep -rq '中文自然語言' \"\$ASSETS\""
 
 echo
