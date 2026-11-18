@@ -52,7 +52,7 @@ REASON_KIT = (
 )
 REASON_SPEC = (
     "docs/spec.md（公開契約與驗收）只由 user 修改，user 要求你改時也一樣。"
-    "請把建議的新內容寫進 docs/spec.proposed.md，並在 QUESTIONS.md 開一題，由 user 自己套用。"
+    "請把修改後的完整內容寫進 docs/spec.proposed.md，並在 QUESTIONS.md 開一題，由 user 自己套用。"
 )
 
 # 檔名（basename）符合就視為密鑰或憑證類檔案。.env.example 之類的範本不算。

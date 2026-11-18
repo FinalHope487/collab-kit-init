@@ -38,7 +38,7 @@ kit 擁有，每次安裝整份覆寫：
 | `docs/testing.md`、`docs/cold-review.md` | 測試分層與推送前驗證；冷審查（獨立子代理優先，外部工具為選用） |
 | `tools/outline.py` | 列出原始碼、`.css`、`.md` 各區塊的起訖行號；讀長檔時只讀要動的那一段 |
 
-用到才建、腳本不建：`docs/troubleshooting.md`（會重複出現的症狀與查法）、`docs/environment.md`（外部事實，從 `assets/environment.md` 複製）、`docs/specs/`（子規格）、`docs/spec.proposed.md`（agent 對 `docs/spec.md` 的修改建議，由 user 自己套用）。
+用到才建、腳本不建：`docs/troubleshooting.md`（會重複出現的症狀與查法）、`docs/environment.md`（外部事實，從 `assets/environment.md` 複製）、`docs/specs/`（子規格）、`docs/spec.proposed.md`（agent 寫的 `docs/spec.md` 修改後完整內容，由 user 自己套用）。
 
 ## 檔案結構
 
