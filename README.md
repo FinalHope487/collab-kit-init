@@ -8,7 +8,7 @@
 
 每個檔和每個步驟都要答得出：「誰讀它，讀完會做什麼不一樣的事？」答不出來就不裝。
 
-- **開工只自動載入兩個檔**：規則檔（不隨進度改變的規則）與 `STATE.md`（專案現況）。
+- **開工只先讀兩個檔**（有 `CLAUDE.md` 匯入的平台自動載入）：規則檔（不隨進度改變的規則）與 `STATE.md`（專案現況）。
 - **程序條件成立才讀**：提問、驗證、改資料格式、委派、收尾、雜務各一個檔，規則檔裡只有一張觸發表。
 - **一件事只有一個家**：其餘位置用路徑加編號指過去。對 user 的訊息相反，直接寫內容。
 - **現行檔只寫生效中的事**：理由與沿革留在 git。
@@ -74,7 +74,7 @@ skills/collab-kit-init/
 bash tests/test_install.sh
 ```
 
-對暫存目錄真跑 `install.sh`，斷言：該建的檔都建了、不再安裝的檔沒建、規則檔與程序檔逐字等於 assets、
+對暫存目錄真跑 `install.sh`，斷言：該建的檔都建了、規則檔與程序檔逐字等於 assets、
 裝進專案的文件引用的路徑全部存在、專案擁有的既有檔不被覆蓋、程序檔與版本戳會被覆寫、重跑不重複加行、`--dry-run` 不寫檔。
 
 ## 安裝
@@ -82,5 +82,3 @@ bash tests/test_install.sh
 複製 `skills/collab-kit-init/` 整個目錄（含 `assets/` 與 `scripts/`）到目標專案的
 `.claude/skills/` 或 `skills/` 下，再手動觸發這個 skill。
 完整步驟見 [`skills/collab-kit-init/SKILL.md`](skills/collab-kit-init/SKILL.md)。
-
-未完成的工作與已知缺口見 [`HANDOFF.md`](HANDOFF.md)。

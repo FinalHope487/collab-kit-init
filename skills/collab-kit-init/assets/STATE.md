@@ -28,11 +28,11 @@
 
 ## 檔案地圖
 
-「人」＝user 會讀也可能改，用中文自然語言寫。「agent」＝只有 agent 讀，用結構化寫法。
+「人」＝user 會讀也可能改，用 user 的語言、自然語言寫。「agent」＝只有 agent 讀，用結構化寫法。
 
 | 檔案 | 讀者 | 何時讀 |
 |---|---|---|
-| `AGENTS.md`、`STATE.md` | 人、agent | 每次開工自動載入 |
+| `AGENTS.md`、`STATE.md` | 人、agent | 每次開工先讀（有 `CLAUDE.md` 匯入的平台自動載入） |
 | `DECISIONS.md` | 人、agent | 對某個決定有疑問時 |
 | `ROADMAP.md`、`ROADMAP/` | 人、agent | 選工作時 |
 | `QUESTIONS.md` | 人、agent | 有待決問題時 |

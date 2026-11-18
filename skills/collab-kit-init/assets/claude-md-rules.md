@@ -22,7 +22,7 @@
 同意一次做一次，不延伸到下一次：
 
 - 在規則檔新增規則行或章節
-- 在 `SOP`／`ROADMAP`／`QUESTIONS` 等檔案新增原本不存在的標題或欄位
+- 在 `ROADMAP`／`QUESTIONS` 等檔案新增原本不存在的標題或欄位
 
 ## 代 user 決策
 
@@ -68,7 +68,7 @@
 | 要問 user；執行中碰到要問的事；user 答了 `QUESTIONS.md` 的題 | `docs/procedures/questions.md` |
 | 要改任何程式或測試 | `docs/procedures/verification.md` |
 | 改動後既有存檔可能讀不起來，或 Schema 變了 | `docs/procedures/data-format.md` |
-| 要把工作交給 fork 或子代理 | `docs/procedures/delegation.md` |
+| 要把工作交給 fork、子代理或另一個 agent 工具 | `docs/procedures/delegation.md` |
 | 動過檔案，要 commit 或 push | `docs/procedures/close-round.md` |
 | user 要求整理，或文件檢查腳本報錯 | `docs/procedures/chores.md` |
 
@@ -102,9 +102,9 @@ user 原本要的東西真的能用了才算完成，不是「做完你以為的
 
 | 讀者 | 例 | 寫法 |
 |---|---|---|
-| user 會讀、也可能改 | `STATE.md`、`DECISIONS.md`、`ROADMAP.md`、`QUESTIONS.md`、回報 | 中文自然語言。每條規則附一行理由，讓讀者能處理規則沒寫到的情況 |
+| user 會讀、也可能改 | `STATE.md`、`DECISIONS.md`、`ROADMAP.md`、`QUESTIONS.md`、回報 | user 的語言、自然語言。每條規則附一行理由，讓讀者能處理規則沒寫到的情況 |
 | 要自己判斷的 agent | 設計說明、藍圖的目標與取捨 | 自然語言，寫出意圖與理由 |
-| 照步驟做的 builder，或只有 agent 讀 | 實作交接、`docs/procedures/` | 結構化：開頭寫觸發條件與讀者；一句一個指令，祈使句；字面值照抄。理由只在會改變下一個動作時才寫 |
+| 照步驟做的子代理，或只有 agent 讀 | 實作交接、`docs/procedures/` | 結構化：開頭寫觸發條件與讀者；一句一個指令，祈使句；字面值照抄。理由只在會改變下一個動作時才寫 |
 
 哪個檔屬於哪一類：`STATE.md`〈檔案地圖〉。既有檔案不回頭改寫，新寫或重寫時才套用。
 
