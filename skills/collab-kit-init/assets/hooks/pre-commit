@@ -1,0 +1,9 @@
+#!/bin/sh
+# collab-kit-init pre-commit：文件檢查。由 install.sh --with-hooks 安裝；檔頭這行是辨識用標記，請勿刪除。
+root="$(git rev-parse --show-toplevel)" || exit 1
+f="$root/tools/hooks/doc_check.py"
+if [ ! -f "$f" ]; then
+  echo "collab pre-commit：找不到 $f，略過文件檢查" >&2
+  exit 0
+fi
+exec python3 "$f"

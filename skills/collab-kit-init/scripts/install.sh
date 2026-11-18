@@ -8,9 +8,12 @@ set -euo pipefail
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ASSETS="$SKILL_DIR/assets"
 RULES_SRC="$ASSETS/claude-md-rules.md"
+MERGE_HOOKS="$SKILL_DIR/scripts/merge_hooks.py"
 
 PROJECT="$PWD"
 DRY=0
+WITH_HOOKS=0
+ALLOW_PUSH_MAIN=0
 
 usage() {
   cat <<'USAGE'
@@ -18,6 +21,11 @@ usage() {
 
   --project DIR   專案根目錄（預設：目前工作目錄）
   --dry-run       只印出會做什麼，不寫檔
+  --with-hooks    另外安裝 agent hook 與 git pre-commit（預設不裝，裝之前要 user 同意）：
+                    tools/hooks/、.claude/settings.json 與 .codex/hooks.json 的 hooks 區塊（冪等合併，舊檔留 .bak）、
+                    git 的 pre-commit（已有別人的 hook 就不覆蓋）
+  --allow-push-main  只和 --with-hooks 併用：專案已明寫放行 push main 時，hook 不擋 push main
+                    （force push 與密鑰檔仍擋）
 
 規則檔：一律寫進 AGENTS.md（內容不同時舊檔留成 AGENTS.md.bak；.bak 已存在就依序用 .bak.1、.bak.2，不覆蓋）。
 預檢：CLAUDE.md 或 AGENTS.md 是 symlink、兩者是同一個檔、任何要寫的檔是目錄或斷掉的 symlink 時，中止（結束碼 3），不寫任何東西（含 --dry-run）。
@@ -36,11 +44,14 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --project) PROJECT="${2:?--project 需要路徑}"; shift 2 ;;
     --dry-run) DRY=1; shift ;;
+    --with-hooks) WITH_HOOKS=1; shift ;;
+    --allow-push-main) ALLOW_PUSH_MAIN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "未知參數: $1" >&2; usage >&2; exit 2 ;;
   esac
 done
 
+[ "$ALLOW_PUSH_MAIN" -eq 0 ] || [ "$WITH_HOOKS" -eq 1 ] || { echo "--allow-push-main 只能和 --with-hooks 一起用" >&2; exit 2; }
 [ -d "$PROJECT" ] || { echo "專案目錄不存在: $PROJECT" >&2; exit 2; }
 [ -f "$RULES_SRC" ] || { echo "找不到規則全文: $RULES_SRC" >&2; exit 2; }
 PROJECT="$(cd "$PROJECT" && pwd)"
@@ -65,6 +76,27 @@ for f in $PREFLIGHT_FILES; do
   if [ -L "$PROJECT/$f" ] && [ ! -e "$PROJECT/$f" ]; then problem "$f 是斷掉的 symlink"
   elif [ -e "$PROJECT/$f" ] && [ ! -f "$PROJECT/$f" ]; then problem "$f 存在但不是一般檔案（可能是目錄）"; fi
 done
+if [ "$WITH_HOOKS" -eq 1 ]; then
+  if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)' 2>/dev/null; then
+    problem "--with-hooks 需要 python3（3.7 以上）：用來合併設定檔與執行 hook"
+  fi
+  for d in .claude .codex tools/hooks; do
+    if { [ -e "$PROJECT/$d" ] && [ ! -d "$PROJECT/$d" ]; } || { [ -L "$PROJECT/$d" ] && [ ! -e "$PROJECT/$d" ]; }; then
+      problem "$d 不是目錄（或是斷掉的 symlink）：無法在底下建檔"
+    fi
+  done
+  for f in tools/hooks/collab_hook.py tools/hooks/collab_adapters.py tools/hooks/doc_check.py .claude/settings.json .codex/hooks.json; do
+    if [ -L "$PROJECT/$f" ]; then problem "$f 是 symlink：腳本不寫入設定檔或 hook 腳本的連結"
+    elif [ -e "$PROJECT/$f" ] && [ ! -f "$PROJECT/$f" ]; then problem "$f 存在但不是一般檔案"; fi
+  done
+  if [ -z "$PROBLEMS" ]; then
+    for spec in ".claude/settings.json:claude" ".codex/hooks.json:codex"; do
+      if ! out="$(python3 "$MERGE_HOOKS" --target "$PROJECT/${spec%%:*}" --agent "${spec##*:}" --check 2>&1)"; then
+        problem "$out"
+      fi
+    done
+  fi
+fi
 if [ -n "$PROBLEMS" ]; then
   echo "預檢失敗，腳本不寫入任何東西（含 --dry-run）。請先處理下列狀態再重跑：" >&2
   printf '%s' "$PROBLEMS" >&2
@@ -231,8 +263,63 @@ for p in "$ASSETS"/procedures/*.md; do
   if [ "$DRY" -eq 1 ]; then report "待覆寫" "$rel"; else mkdir -p "$PROJECT/docs/procedures"; cp "$p" "$PROJECT/$rel"; report "覆寫" "$rel"; fi
   mark_touched "$rel"
 done
+# ---- 選用：agent hook 與 git pre-commit（--with-hooks）----
+if [ "$WITH_HOOKS" -eq 1 ]; then
+  for hf in collab_hook.py collab_adapters.py doc_check.py; do
+    hrel="tools/hooks/$hf"
+    if [ -f "$PROJECT/$hrel" ] && same_text "$PROJECT/$hrel" "$ASSETS/hooks/$hf"; then
+      report "已是新版" "$hrel"
+    elif [ "$DRY" -eq 1 ]; then
+      report "待覆寫" "$hrel"
+    else
+      mkdir -p "$PROJECT/tools/hooks"
+      if [ -f "$PROJECT/$hrel" ]; then report "覆寫" "$hrel"; else report "建立" "$hrel"; fi
+      cp "$ASSETS/hooks/$hf" "$PROJECT/$hrel"
+      mark_touched "$hrel"
+    fi
+  done
+  for spec in ".claude/settings.json:claude" ".codex/hooks.json:codex"; do
+    hrel="${spec%%:*}"; hagent="${spec##*:}"
+    margs=(--target "$PROJECT/$hrel" --agent "$hagent")
+    if [ "$ALLOW_PUSH_MAIN" -eq 1 ]; then margs+=(--allow-push-main); fi
+    if [ "$DRY" -eq 1 ]; then margs+=(--dry-run); else margs+=(--apply); fi
+    mout="$(python3 "$MERGE_HOOKS" "${margs[@]}")"
+    mstatus="${mout%%$'\t'*}"
+    mbak=""; case "$mout" in *$'\t'*) mbak="${mout#*$'\t'}" ;; esac
+    case "$mstatus" in
+      unchanged) report "已是新版" "$hrel 的 hooks" ;;
+      created) if [ "$DRY" -eq 1 ]; then report "待建立" "$hrel"; else report "建立" "$hrel"; mark_touched "$hrel"; fi ;;
+      updated)
+        if [ "$DRY" -eq 1 ]; then report "待合併" "$hrel（舊檔會留成 .bak）"
+        else report "合併" "$hrel 的 hooks（舊檔留成 ${mbak#"$PROJECT"/}）"; mark_touched "$hrel"; mark_touched "${mbak#"$PROJECT"/}"; fi ;;
+      *) echo "merge_hooks.py 回傳了無法辨識的結果：$mout" >&2; exit 1 ;;
+    esac
+  done
+  # git pre-commit：只覆寫自己裝的（檔內有標記）；已有別人的 hook 就不動
+  HOOK_SRC="$ASSETS/hooks/pre-commit"
+  if ! git -C "$PROJECT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    report "略過" "pre-commit（不是 git repo）"
+  else
+    GIT_HOOKS_DIR="$(git -C "$PROJECT" rev-parse --git-path hooks)"
+    case "$GIT_HOOKS_DIR" in /*) ;; *) GIT_HOOKS_DIR="$PROJECT/$GIT_HOOKS_DIR" ;; esac
+    HOOK_DEST="$GIT_HOOKS_DIR/pre-commit"
+    if [ -e "$HOOK_DEST" ] || [ -L "$HOOK_DEST" ]; then
+      if [ -f "$HOOK_DEST" ] && [ ! -L "$HOOK_DEST" ] && grep -q 'collab-kit-init pre-commit' "$HOOK_DEST"; then
+        if same_text "$HOOK_DEST" "$HOOK_SRC"; then report "已是新版" "git pre-commit"
+        elif [ "$DRY" -eq 1 ]; then report "待覆寫" "git pre-commit"
+        else cp "$HOOK_SRC" "$HOOK_DEST"; chmod +x "$HOOK_DEST"; report "覆寫" "git pre-commit"; fi
+      else
+        report "略過" "git pre-commit：已有別的 hook，不覆蓋。請在它裡面加一行 python3 tools/hooks/doc_check.py"
+      fi
+    elif [ "$DRY" -eq 1 ]; then
+      report "待建立" "git pre-commit"
+    else
+      mkdir -p "$GIT_HOOKS_DIR"; cp "$HOOK_SRC" "$HOOK_DEST"; chmod +x "$HOOK_DEST"; report "建立" "git pre-commit"
+    fi
+  fi
+fi
 # 版本戳＝kit 擁有的檔（規則全文＋程序檔）的內容雜湊。不用 git 短碼：skill 被複製進專案後，git 會回報專案自己的 commit。
-KIT_VER="$(cat "$RULES_SRC" "$ASSETS"/procedures/*.md | tr -d '\r' | md5sum | cut -c1-12)"
+KIT_VER="$(cat "$RULES_SRC" "$ASSETS"/procedures/*.md "$ASSETS"/hooks/* | tr -d '\r' | md5sum | cut -c1-12)"
 VER_FILE="$PROJECT/.collab-kit-version"
 OLD_VER=""
 if [ -f "$VER_FILE" ]; then OLD_VER="$(tr -d '\r\n' < "$VER_FILE")"; fi
@@ -273,3 +360,9 @@ echo "== 腳本不做、接下來由你做的 =="
 echo "  步驟 2：STATE.md 還是模板時，照已知事實填目標、契約、下一步、測試指令"
 echo "  步驟 3：偵測本專案的驗證指令、服務埠等，寫進 docs/project-rules.md"
 echo "  步驟 4：留了 .bak 時依 SKILL.md 步驟 4 分流搬（專案規則→docs/project-rules.md、目標與約束→STATE.md、其他 @ 匯入→CLAUDE.md、授權類不搬）；並用 git diff docs/procedures/ 檢查被覆寫的程序檔"
+if [ "$WITH_HOOKS" -eq 1 ]; then
+  echo "== hook 還需要你做 =="
+  echo "  Codex：hook 要先被信任才會跑。在 Codex 開 /hooks，核准 collab 的 hook（hook 或腳本有變動時要重新核准）"
+  echo "  Claude Code：開啟這個專案時接受專案信任對話框；改過設定檔後用 /hooks 確認載入"
+  echo "  hook 只是護欄：兩邊逾時或出錯時工具都會照常執行"
+fi

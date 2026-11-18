@@ -211,9 +211,16 @@ if git -C "$KIT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then REPO_FILE
 ext=""
 while IFS= read -r f; do
   [ "$f" = "tests/test_install.sh" ] && continue
-  if grep -qiE 'chatgpt|codex|sonnet|calculus-visualizer|dreamcore' "$KIT/$f" 2>/dev/null; then ext="$ext$f "; fi
+  [ "$f" = "tests/test_hooks.py" ] && continue
+  case "$f" in
+    # hook 要同時支援 Codex，這些檔必然出現 .codex／--agent codex；其餘仍禁止 codex
+    skills/collab-kit-init/assets/hooks/*|skills/collab-kit-init/scripts/merge_hooks.py|skills/collab-kit-init/scripts/install.sh|skills/collab-kit-init/SKILL.md|README.md)
+      pat='chatgpt|sonnet|calculus-visualizer|dreamcore' ;;
+    *) pat='chatgpt|codex|sonnet|calculus-visualizer|dreamcore' ;;
+  esac
+  if grep -qiE "$pat" "$KIT/$f" 2>/dev/null; then ext="$ext$f "; fi
 done <<< "$REPO_FILES"
-check "整個 repo（測試檔本身除外）不提指名工具或私人專案名（命中:${ext:- 無}）" "[ -z \"\$ext\" ]"
+check "整個 repo 不提 chatgpt／sonnet／私人專案名；codex 只允許出現在 hook 相關檔（命中請見括號）（命中:${ext:- 無}）" "[ -z \"\$ext\" ]"
 priv="$(grep -il 'HANDOFF' "$KIT/README.md" 2>/dev/null)"
 check "README 不提已刪的 HANDOFF" "[ -z \"\$priv\" ]"
 plat="$(grep -rilE 'AskUserQuestion|subagent' "$ASSETS" "$KIT/skills/collab-kit-init/SKILL.md" 2>/dev/null | tr '\n' ' ')"
@@ -242,6 +249,10 @@ check "規則檔回報納入冷審查結果與詢問" "grep -q '有跑冷審查�
 check "STATE.md 停損訊號含資料遺失／誤推送／誤對外發送" "grep -q '資料遺失、誤推送或誤對外發送' \"\$ASSETS/STATE.md\""
 check "規則檔與程序檔語言規則一致（不寫死中文自然語言）" "! grep -rq '中文自然語言' \"\$ASSETS\""
 
+echo "== hook、pre-commit 與 --with-hooks（tests/test_hooks.py）=="
+python3 "$KIT/tests/test_hooks.py" > "$WORK/hooks.out" 2>&1; RC=$?
+if [ $RC -ne 0 ]; then tail -n 30 "$WORK/hooks.out"; fi
+check "tests/test_hooks.py 全過（$(grep -E '^Ran ' "$WORK/hooks.out" | tail -1)）" "[ $RC -eq 0 ]"
 echo
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

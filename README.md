@@ -55,8 +55,27 @@ skills/collab-kit-init/
 ├── assets/plans-README.md          → docs/plans/README.md
 ├── assets/project-rules.md、testing.md、cold-review.md → docs/
 ├── assets/outline.py               → tools/outline.py
+├── assets/hooks/                   → tools/hooks/、git pre-commit（--with-hooks 才安裝）
+├── scripts/merge_hooks.py          合併 .claude/settings.json 與 .codex/hooks.json 的 hooks 區塊
 └── assets/environment.md           需要時手動複製成 docs/environment.md
 ```
+
+## 選用的 hook
+
+預設安裝不碰 hook。`install.sh --with-hooks` 才裝（會改專案的 `.claude/settings.json`、`.codex/hooks.json` 與 git 的 `pre-commit`）：
+
+| 項目 | 做什麼 | Claude Code 與 Codex |
+|---|---|---|
+| `SessionStart` | 把 `STATE.md` 注入上下文，「先讀 `STATE.md`」不再靠 agent 遵守 | 共用同一份腳本；Codex 另設 `additionalContextLimit` |
+| `PreToolUse`（Bash） | 擋 push 到 `main`／預設分支、force push、讀寫提交 `.env` 與金鑰憑證檔 | 完全共用 |
+| `PreToolUse`（改檔） | 擋改 `AGENTS.md`、`docs/procedures/*.md`、`docs/spec.md` | 核心共用；Claude 取 `tool_input.file_path`，Codex 從 `apply_patch` 的 patch 文字解析路徑，差異集中在 `collab_adapters.py` |
+| git `pre-commit` | Markdown 不超過 32 KiB、`STATE.md` 不超過 6 KiB、文件引用的路徑存在、`CLAUDE.md` 有匯入 | 與 agent 無關，人與兩個 agent 都適用 |
+
+- 被擋時一律 `deny`：Codex 的 `PreToolUse` 不支援 `ask`（回 `ask` 會讓工具照樣執行）。理由要 agent 用內建問答工具問 user，由 user 自己執行。
+- 專案已明寫放行 push `main` 時加 `--allow-push-main`（force push 與密鑰檔仍擋）。
+- Codex 的 hook 要先被使用者信任才會跑：在 Codex 開 `/hooks` 核准；hook 或腳本有變動要重新核准。Claude Code 要接受專案信任對話框。
+- hook 只是護欄：兩邊的文件都說明 hook 逾時或出錯時工具會照常執行。腳本出錯一律以結束碼 1 收場，不用結束碼 2（兩邊都當成「阻擋」）。
+- 需要 `python3`（3.7 以上）與 POSIX `sh`；不支援 Windows 的 `commandWindows`。Codex 端的行為依官方文件模擬驗證，未經 Codex 實機測試。
 
 ## 改規則的流程
 
@@ -71,7 +90,8 @@ skills/collab-kit-init/
 ## 測試
 
 ```bash
-bash tests/test_install.sh
+bash tests/test_install.sh      # 安裝腳本；結尾會再跑一次 hook 測試
+python3 tests/test_hooks.py     # 只跑 hook、pre-commit 與 --with-hooks（42 條）
 ```
 
 對暫存目錄真跑 `install.sh`，斷言：該建的檔都建了、規則檔與程序檔逐字等於 assets、

@@ -1,6 +1,6 @@
 ---
 name: collab-kit-init
-description: 在目前專案初始化或更新「協作規則骨架」——把通用規則整份寫進 AGENTS.md，把條件成立才讀的程序檔寫進 docs/procedures/，並建立專案自己維護的檔：STATE.md、DECISIONS.md、QUESTIONS.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/spec.md、docs/plans/README.md、docs/project-rules.md、docs/testing.md、docs/cold-review.md、tools/outline.py。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「更新 kit 版本」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
+description: 在目前專案初始化或更新「協作規則骨架」——把通用規則整份寫進 AGENTS.md，把條件成立才讀的程序檔寫進 docs/procedures/，並建立專案自己維護的檔：STATE.md、DECISIONS.md、QUESTIONS.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/spec.md、docs/plans/README.md、docs/project-rules.md、docs/testing.md、docs/cold-review.md、tools/outline.py。user 說「初始化協作規則」「裝 hook」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「更新 kit 版本」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
 disable-model-invocation: true
 ---
 
@@ -27,6 +27,8 @@ disable-model-invocation: true
 | `assets/DECISIONS.md` | 決策表的模板：一個決定一行 |
 | `assets/spec.md`、`assets/plans-README.md` | `docs/spec.md` 與 `docs/plans/README.md` 的模板 |
 | `assets/project-rules.md`、`assets/testing.md`、`assets/cold-review.md` | 專案自己填值的模板 |
+| `assets/hooks/` | 選用的 hook（`--with-hooks` 才安裝）：`collab_hook.py` 共用核心、`collab_adapters.py` 兩個 agent 的輸入差異、`doc_check.py` 與 `pre-commit` 文件檢查 |
+| `scripts/merge_hooks.py` | 把 hook 設定冪等合併進 `.claude/settings.json` 與 `.codex/hooks.json` |
 | `assets/environment.md` | 腳本不建；專案需要記外部事實時手動複製成 `docs/environment.md` |
 
 規則全文與模板一律由 `scripts/install.sh` 複製，不要自己寫入、也不要憑記憶重打。
@@ -81,6 +83,21 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 搬完告訴 user 哪些行搬到哪、`.bak` 可以刪。不自己刪 `.bak`。
 
 專案若改過 `docs/procedures/`：腳本已整份覆寫。用 `git diff docs/procedures/` 看被蓋掉的專案改動（改動必須曾經提交過才找得回），把專案專屬的部分搬進 `docs/project-rules.md`，在回報列出。
+
+## 步驟 5：選用的 hook（只在 user 要求時）
+
+預設安裝不碰 hook。裝 hook 會改專案的 `.claude/settings.json`、`.codex/hooks.json` 與 git 的 `pre-commit`，**user 沒有明確要求就不要加 `--with-hooks`**。
+
+```bash
+bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> --with-hooks [--allow-push-main] [--dry-run]
+```
+
+- 安裝內容：`tools/hooks/`（共用核心、兩個 agent 的差異轉接、文件檢查）；兩份設定的 hooks 區塊（冪等合併，舊檔留 `.bak`，其他設定不動）；git `pre-commit`（已有別人的 hook 就不覆蓋）
+- hook 做什麼：`SessionStart` 把 `STATE.md` 注入上下文；`PreToolUse` 擋 push 到 `main`／預設分支、force push、讀寫提交 `.env` 與金鑰憑證檔、改 `AGENTS.md`、`docs/procedures/*.md`、`docs/spec.md`；`pre-commit` 檢查 Markdown 不超過 32 KiB、`STATE.md` 不超過 6 KiB、文件引用的路徑存在、`CLAUDE.md` 有匯入
+- 專案已在 `docs/project-rules.md` 明寫放行 push `main` 時加 `--allow-push-main`（force push 與密鑰檔仍擋）。這是 user 在安裝時的明示決定，不要自己判斷
+- 被擋時 hook 一律回 deny（Codex 不支援 ask），理由要 agent 用內建問答工具問 user，由 user 自己執行
+- 預檢（symlink、硬連結、目錄、斷掉的 symlink、既有設定檔不是可合併的 JSON）有問題時中止，結束碼 3，不寫任何東西
+- 裝完告訴 user：Codex 要開 `/hooks` 核准這些 hook 才會執行（hook 或腳本有變動要重新核准）；Claude Code 要接受專案信任對話框。hook 只是護欄，兩邊逾時或出錯時工具都會照常執行；Codex 端行為未經實機驗證
 
 ## 完成後回報
 

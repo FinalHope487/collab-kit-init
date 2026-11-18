@@ -29,6 +29,7 @@
 - 在規則檔新增規則行或章節
 - 在 `ROADMAP`／`QUESTIONS` 等檔案新增原本不存在的標題或欄位
 - 開新 session，或傳訊給其他現存 session（本 session 的 fork 與子代理不算；`docs/project-rules.md` 明列的外部工具不在此限）
+- 修改 `docs/spec.md`（公開契約與驗收）：由 user 修改。發現規格需要變更時，在 `QUESTIONS.md` 開一題；偏離規格的實作照〈代 user 決策〉在 `DECISIONS.md` 加一行
 
 ## 代 user 決策
 
