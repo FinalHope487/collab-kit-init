@@ -160,6 +160,7 @@ priv="$(grep -ilE 'calculus-visualizer|dreamcore|HANDOFF' "$KIT/README.md" 2>/de
 check "README 不提私人專案名或已刪的 HANDOFF" "[ -z \"\$priv\" ]"
 plat="$(grep -rilE 'AskUserQuestion|subagent' "$ASSETS" "$KIT/skills/collab-kit-init/SKILL.md" 2>/dev/null | tr '\n' ' ')"
 check "assets 與 SKILL.md 不含單一平台專有詞（命中:${plat:- 無}）" "[ -z \"\$plat\" ]"
+check "規則檔第一行就是先讀 STATE.md" "[ \"\$(head -n 1 \"\$RULES_SRC\")\" = '開工第一件事：先讀 \`STATE.md\`。' ]"
 check "規則檔開工先讀 STATE.md" "grep -q '開工先讀 \`STATE.md\`' \"\$RULES_SRC\""
 auto="$(grep -rlE '每次開工自動載入|只自動載入|已自動載入，照它做' "$ASSETS" "$KIT/README.md" 2>/dev/null | tr '\n' ' ')"
 check "沒有文件假設 STATE.md 一定自動載入（命中:${auto:- 無}）" "[ -z \"\$auto\" ]"
