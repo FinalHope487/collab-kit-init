@@ -340,7 +340,7 @@ class Merge(unittest.TestCase):
         out = self.merge(t, "claude", "apply").stdout.strip()
         self.assertTrue(out.startswith("updated\t"))
         data = json.load(open(t, encoding="utf-8"))
-        self.assertEqual(data["permissions"]["allow"], original["permissions"]["allow"])  # 使用者的 allow 規則不動
+        self.assertEqual(data["permissions"], original["permissions"])
         commands = [h["command"] for g in data["hooks"]["PreToolUse"] for h in g["hooks"]]
         self.assertIn("echo mine", commands)
         self.assertEqual(sum("collab_hook.py" in c for c in commands), 1)
@@ -371,76 +371,11 @@ class Merge(unittest.TestCase):
         # Claude 已由 CLAUDE.md 載入 STATE.md，只裝 PreToolUse；Codex 兩個都裝
         self.assertEqual(sorted(cj["hooks"]), ["PreToolUse"])
         self.assertEqual(sorted(xj["hooks"]), ["PreToolUse", "SessionStart"])
-        # Claude 的檔案保護改走 permissions.deny，hook 只看 Bash；Codex 沒有等價的靜態規則，hook 仍看 apply_patch
-        self.assertEqual(cj["hooks"]["PreToolUse"][0]["matcher"], "Bash")
-        self.assertEqual(xj["hooks"]["PreToolUse"][0]["matcher"], "Bash|apply_patch")
-        self.assertIn("Edit(/docs/spec.md)", cj["permissions"]["deny"])
-        self.assertNotIn("permissions", xj)
         for doc in (cj, xj):
             for groups in doc["hooks"].values():
                 for g in groups:
                     for h in g["hooks"]:
                         self.assertEqual(h["type"], "command")
-
-    def deny_of(self, path):
-        return json.load(open(path, encoding="utf-8"))["permissions"]["deny"]
-
-    def test_claude_permissions_deny_rules_cover_protected_paths_and_force_push(self):
-        t = os.path.join(self.dir, "s.json")
-        self.merge(t, "claude", "apply")
-        deny = self.deny_of(t)
-        for rule in ("Read(.env)", "Read(.env.*)", "Read(*.pem)", "Read(id_rsa)", "Edit(/AGENTS.md)", "Edit(/docs/spec.md)",
-                     "Edit(/docs/procedures/**)", "Bash(git push --force*)", "Bash(git push * -f *)",
-                     "mcp__github__push_files", "mcp__github__merge_pull_request"):
-            self.assertIn(rule, deny)
-        # docs/spec.proposed.md 是 agent 該寫的檔，不能被擋
-        self.assertFalse([r for r in deny if "spec.proposed" in r])
-        # ! 否定規則必須排在它要排除的規則之後，否則 .env.example 也會被擋
-        self.assertLess(deny.index("Read(.env.*)"), deny.index("Read(!.env.example)"))
-        import re
-        for rule in deny:
-            self.assertRegex(rule, r"^((Read|Edit|Bash)\(.+\)|mcp__[A-Za-z0-9_]+)$", rule)
-            if rule.startswith("mcp__"):
-                self.assertNotIn("(", rule)  # 帶括號的 mcp__ 規則會被 Claude Code 略過
-
-    def test_permissions_merge_keeps_user_rules_and_is_idempotent(self):
-        t = os.path.join(self.dir, "s.json")
-        original = {"permissions": {"allow": ["Bash(ls)"], "deny": ["Bash(rm -rf *)", "Read(.env.local)"], "defaultMode": "plan"}}
-        json.dump(original, open(t, "w"))
-        self.merge(t, "claude", "apply")
-        data = json.load(open(t))
-        self.assertEqual(data["permissions"]["allow"], ["Bash(ls)"])
-        self.assertEqual(data["permissions"]["defaultMode"], "plan")
-        deny = data["permissions"]["deny"]
-        self.assertEqual(deny[:2], ["Bash(rm -rf *)", "Read(.env.local)"])
-        before = open(t, encoding="utf-8").read()
-        self.assertEqual(self.merge(t, "claude", "apply").stdout.strip(), "unchanged")
-        self.assertEqual(open(t, encoding="utf-8").read(), before)
-
-    def test_github_mcp_flag_removes_and_restores_only_those_rules(self):
-        t = os.path.join(self.dir, "s.json")
-        self.merge(t, "claude", "apply")
-        self.assertIn("mcp__github__push_files", self.deny_of(t))
-        self.merge(t, "claude", "apply", "--allow-github-mcp-writes")
-        deny = self.deny_of(t)
-        self.assertFalse([r for r in deny if r.startswith("mcp__")])
-        self.assertIn("Edit(/AGENTS.md)", deny)
-        self.merge(t, "claude", "apply")
-        self.assertIn("mcp__github__merge_pull_request", self.deny_of(t))
-
-    def test_bad_permissions_shapes_exit_3_without_writing(self):
-        t = os.path.join(self.dir, "bad.json")
-        for text in ('{"permissions": []}', '{"permissions": {"deny": "x"}}', '{"permissions": {"deny": [1]}}'):
-            open(t, "w").write(text)
-            done = self.merge(t, "claude", "apply")
-            self.assertEqual(done.returncode, 3, text)
-            self.assertEqual(open(t).read(), text)
-
-    def test_codex_config_never_gets_permissions(self):
-        t = os.path.join(self.dir, "x.json")
-        json.dump({"permissions": {"deny": ["keep"]}}, open(t, "w"))
-        self.merge(t, "codex", "apply")
-        self.assertEqual(json.load(open(t))["permissions"], {"deny": ["keep"]})
 
     def test_only_touches_our_two_events_and_drops_emptied_keys(self):
         t = os.path.join(self.dir, "s.json")
@@ -623,22 +558,10 @@ class InstallWithHooks(unittest.TestCase):
         for rel in (".claude/settings.json", ".codex/hooks.json"):
             self.assertIn("--allow-push-main", open(os.path.join(self.repo, rel), encoding="utf-8").read())
 
-    def test_allow_flags_without_with_hooks_are_rejected(self):
-        for flag in ("--allow-push-main", "--allow-github-mcp-writes"):
-            done = self.install(flag)
-            self.assertEqual(done.returncode, 2, flag)
-            self.assertEqual(self.snapshot(), [])
-
-    def test_install_writes_claude_permissions_and_mcp_flag_applies_to_claude_only(self):
-        self.install("--with-hooks")
-        claude = json.load(open(os.path.join(self.repo, ".claude", "settings.json")))
-        self.assertIn("Read(.env)", claude["permissions"]["deny"])
-        self.assertIn("mcp__github__push_files", claude["permissions"]["deny"])
-        self.assertNotIn("permissions", json.load(open(os.path.join(self.repo, ".codex", "hooks.json"))))
-        self.install("--with-hooks", "--allow-github-mcp-writes")
-        claude = json.load(open(os.path.join(self.repo, ".claude", "settings.json")))
-        self.assertNotIn("mcp__github__push_files", claude["permissions"]["deny"])
-        self.assertIn("Edit(/docs/spec.md)", claude["permissions"]["deny"])
+    def test_allow_flag_without_with_hooks_is_rejected(self):
+        done = self.install("--allow-push-main")
+        self.assertEqual(done.returncode, 2)
+        self.assertEqual(self.snapshot(), [])
 
     def test_dry_run_writes_nothing(self):
         before = self.snapshot()
@@ -653,8 +576,7 @@ class InstallWithHooks(unittest.TestCase):
         path = os.path.join(self.repo, ".claude", "settings.json")
         json.dump({"permissions": {"allow": ["Bash(ls)"]}}, open(path, "w"))
         self.install("--with-hooks")
-        self.assertEqual(json.load(open(path))["permissions"]["allow"], ["Bash(ls)"])  # 使用者的 allow 規則不動
-        self.assertIn("Edit(/AGENTS.md)", json.load(open(path))["permissions"]["deny"])
+        self.assertEqual(json.load(open(path))["permissions"], {"allow": ["Bash(ls)"]})
         self.assertEqual(json.load(open(path + ".bak")), {"permissions": {"allow": ["Bash(ls)"]}})
 
     def test_invalid_existing_json_aborts_before_writing_anything(self):

@@ -93,11 +93,11 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> --with-ho
 ```
 
 - 安裝內容：`tools/hooks/`（共用核心、兩個 agent 的差異轉接、文件檢查）；兩份設定的 hooks 區塊（冪等合併，舊檔留 `.bak`，其他設定不動）；git `pre-commit`（已有別人的 hook 就不覆蓋）
-- 兩邊機制不同：Claude 用 `.claude/settings.json` 的 `permissions.deny` 靜態規則擋密鑰檔、改 `AGENTS.md`／`docs/procedures/*.md`／`docs/spec.md`、force push、GitHub MCP 寫入工具（Claude Code 自己執行，比 hook 強），hook 只負責 push 到 `main`／預設分支；Codex 沒有等價物，用 hook 擋 `apply_patch` 的受保護檔與密鑰檔、push 與 force push，並用 `SessionStart` 注入 `STATE.md`。`pre-commit` 檢查 Markdown 不超過 32 KiB、`STATE.md` 不超過 6 KiB、`CLAUDE.md` 有匯入（擋 commit），文件引用的路徑不存在只警告
-- 專案已在 `docs/project-rules.md` 明寫放行 push `main` 時加 `--allow-push-main`（force push 與檔案保護仍擋）；user 需要用 GitHub MCP 寫入工具時加 `--allow-github-mcp-writes`。這兩個都是 user 在安裝時的明示決定，不要自己判斷
-- 被擋時一律 deny（Codex 不支援 ask），理由要 agent 用內建問答工具問 user，由 user 自己執行。改 `docs/spec.md` 被擋時，agent 改寫 `docs/spec.proposed.md` 並在 `QUESTIONS.md` 開一題，由 user 自己套用
+- hook 做什麼：`SessionStart` 把 `STATE.md` 注入上下文（只裝給 Codex，Claude 已由 `CLAUDE.md` 載入）；`PreToolUse` 的 Bash 只擋 push 到 `main`／預設分支與 force push；檔案工具擋改 `AGENTS.md`、`docs/procedures/*.md`、`docs/spec.md` 與碰 `.env`、金鑰憑證檔（Bash 讀 `.env`、改受保護檔不擋）；`pre-commit` 檢查 Markdown 不超過 32 KiB、`STATE.md` 不超過 6 KiB、`CLAUDE.md` 有匯入（擋 commit），文件引用的路徑不存在只警告
+- 專案已在 `docs/project-rules.md` 明寫放行 push `main` 時加 `--allow-push-main`（force push 與檔案工具的保護仍擋）。這是 user 在安裝時的明示決定，不要自己判斷
+- 被擋時 hook 一律回 deny（Codex 不支援 ask），理由要 agent 用內建問答工具問 user，由 user 自己執行。改 `docs/spec.md` 被擋時，agent 改寫 `docs/spec.proposed.md` 並在 `QUESTIONS.md` 開一題，由 user 自己套用
 - 預檢（`--project` 不是 git 頂層目錄、symlink、硬連結、目錄、斷掉的 symlink、git hooks 目錄不是目錄、既有設定檔不是可合併的 JSON）有問題時中止，結束碼 3，不寫任何東西
-- 裝完告訴 user：Codex 要開 `/hooks` 核准這些 hook 才會執行（專案未受信任、hook 定義變動、`codex exec` 非互動、管理員關閉時會靜默失效，見 README〈Codex 端：裝了不一定生效〉）；Claude Code 要接受專案信任對話框。hook 只是護欄，兩邊逾時或出錯時工具都會照常執行；Codex 端行為與 Claude 規則語法都未經端到端實測
+- 裝完告訴 user：Codex 要開 `/hooks` 核准這些 hook 才會執行（專案未受信任、hook 定義變動、`codex exec` 非互動、管理員關閉時會靜默失效，見 README〈Codex 端：裝了不一定生效〉）；Claude Code 要接受專案信任對話框。hook 只是護欄，兩邊逾時或出錯時工具都會照常執行；Codex 端行為未經實機驗證。
 
 ## 完成後回報
 
