@@ -38,7 +38,7 @@
 | `QUESTIONS.md` | 人、agent | 有待決問題時 |
 | `docs/spec.md`、`docs/plans/` | 人、agent | 動到公開契約或接手跨輪計畫時 |
 | `docs/procedures/` | agent | `AGENTS.md`〈程序〉的觸發條件成立時 |
-| `docs/project-rules.md`、`docs/testing.md`、`docs/codex-collaboration.md` | agent | 要跑驗證、審查或委派時 |
+| `docs/project-rules.md`、`docs/testing.md`、`docs/cold-review.md` | agent | 要跑驗證、審查或委派時 |
 
 ## 測試
 

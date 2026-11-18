@@ -1,6 +1,6 @@
 ---
 name: collab-kit-init
-description: 在目前專案初始化或升級「協作規則骨架」——把通用規則整份寫進規則檔（AGENTS.md，或 CLAUDE.md 以 @ 匯入的檔），把條件成立才讀的程序檔寫進 docs/procedures/，並建立專案自己維護的檔：STATE.md、DECISIONS.md、QUESTIONS.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/spec.md、docs/plans/README.md、docs/project-rules.md、docs/testing.md、docs/codex-collaboration.md、tools/outline.py。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「升級舊版 kit」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
+description: 在目前專案初始化或更新「協作規則骨架」——把通用規則整份寫進規則檔（AGENTS.md，或 CLAUDE.md 以 @ 匯入的檔），把條件成立才讀的程序檔寫進 docs/procedures/，並建立專案自己維護的檔：STATE.md、DECISIONS.md、QUESTIONS.md、ROADMAP.md＋ROADMAP/later.md＋ROADMAP/parked.md、docs/spec.md、docs/plans/README.md、docs/project-rules.md、docs/testing.md、docs/cold-review.md、tools/outline.py。user 說「初始化協作規則」「裝 collab kit」「幫這個專案補上 CLAUDE.md 規則」「更新 kit 版本」「建立 QUESTIONS.md 流程」時使用這個 skill；即使 user 只說「幫這個新專案設好我的工作規則」而沒點名 collab-kit，也用它。
 disable-model-invocation: true
 ---
 
@@ -11,7 +11,7 @@ disable-model-invocation: true
 | 擁有者 | 檔案 | 安裝與升級時 |
 |---|---|---|
 | kit | 規則檔（`AGENTS.md`）、`docs/procedures/*.md`、`.collab-kit-version` | 每次整份覆寫。規則檔內容不同時舊檔留成 `.bak`。專案不改這些檔 |
-| 專案 | `STATE.md`、`DECISIONS.md`、`QUESTIONS.md`、`ROADMAP.md`、`ROADMAP/`、`docs/spec.md`、`docs/plans/`、`docs/project-rules.md`、`docs/testing.md`、`docs/codex-collaboration.md`、`tools/outline.py` | 缺才建，已存在不覆蓋 |
+| 專案 | `STATE.md`、`DECISIONS.md`、`QUESTIONS.md`、`ROADMAP.md`、`ROADMAP/`、`docs/spec.md`、`docs/plans/`、`docs/project-rules.md`、`docs/testing.md`、`docs/cold-review.md`、`tools/outline.py` | 缺才建，已存在不覆蓋 |
 | 專案 | `CLAUDE.md` | 只保證它匯入規則檔與 `STATE.md` |
 
 專案專屬的規則寫進 `docs/project-rules.md`，不寫進規則檔或 `docs/procedures/`：那兩處下次升級會被覆寫。
@@ -26,9 +26,8 @@ disable-model-invocation: true
 | `assets/STATE.md` | 專案現況的模板：目標、生效中的契約、下一步、停損訊號、檔案地圖、測試指令 |
 | `assets/DECISIONS.md` | 決策表的模板：一個決定一行 |
 | `assets/spec.md`、`assets/plans-README.md` | `docs/spec.md` 與 `docs/plans/README.md` 的模板 |
-| `assets/project-rules.md`、`assets/testing.md`、`assets/codex-collaboration.md` | 專案自己填值的模板 |
+| `assets/project-rules.md`、`assets/testing.md`、`assets/cold-review.md` | 專案自己填值的模板 |
 | `assets/environment.md` | 腳本不建；專案需要記外部事實時手動複製成 `docs/environment.md` |
-| `references/upgrade-existing.md` | 步驟 4：專案已有舊版 kit 檔案時用 |
 
 規則全文與模板一律由 `scripts/install.sh` 複製，不要自己寫入、也不要憑記憶重打。
 
@@ -66,13 +65,9 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 確認不適用的層寫「不適用」加理由。測試數字不寫進任何檔，寫在 commit message。
 需要新增相依套件時只開題，不安裝。
 
-## 步驟 4：搬舊內容
+## 步驟 4：處理 `.bak`
 
-出現下列任一情況時，照 `references/upgrade-existing.md` 處理：
-
-- 規則檔或 `CLAUDE.md` 留了 `.bak`
-- 專案有舊版 kit 的檔：`SOP.md`、`SOP/`、`NOTES.md`、`handoff.md`、`docs/decisions/`、`claude-decisions.json`、`DECISIONS.jsonl`
-- `ROADMAP.md` 有〈基線〉或〈硬約束〉一節
+規則檔或 `CLAUDE.md` 留了 `.bak` 時，把 `.bak` 裡屬於本專案的內容搬進 `docs/project-rules.md`（目錄、指令、專案專屬規則），通用規則不搬。搬完告訴 user 哪些行搬到哪、`.bak` 可以刪。不自己刪 `.bak`。
 
 ## 完成後回報
 
@@ -80,5 +75,5 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 - 版本戳的舊值與新值
 - 哪些新建、哪些已存在、哪些被覆寫
 - 步驟 2、3 各項填了什麼，有沒有開成 `QUESTIONS.md` 的題
-- 步驟 4 搬了什麼、刪了什麼
+- 步驟 4 搬了什麼
 - **建立或修改的檔案裡，有哪些命中 `.gitignore`**

@@ -24,13 +24,8 @@ FILES=(
   CLAUDE.md AGENTS.md STATE.md DECISIONS.md QUESTIONS.md
   ROADMAP.md ROADMAP/later.md ROADMAP/parked.md
   docs/spec.md docs/plans/README.md
-  docs/project-rules.md docs/testing.md docs/codex-collaboration.md
+  docs/project-rules.md docs/testing.md docs/cold-review.md
   tools/outline.py .collab-kit-version
-)
-# 不再安裝的檔
-GONE=(
-  NOTES.md SOP.md SOP/README.md handoff.md claude-decisions.json DECISIONS.jsonl
-  docs/decisions/README.md .claude/templates/session-handoff.md
 )
 
 echo "== 全新專案 =="
@@ -38,7 +33,6 @@ P="$WORK/fresh"; mkdir -p "$P"; git -C "$P" init -q
 bash "$INSTALL" --project "$P" > "$WORK/fresh.out" 2>&1; RC=$?
 check "腳本結束碼 0" "[ $RC -eq 0 ]"
 for f in "${FILES[@]}"; do check "建立 $f" "[ -f \"\$P/$f\" ]"; done
-for f in "${GONE[@]}"; do check "不建立 $f" "[ ! -e \"\$P/$f\" ]"; done
 for src in "$ASSETS"/procedures/*.md; do
   n="$(basename "$src")"
   check "docs/procedures/$n 逐字等於 assets" "same \"\$P/docs/procedures/$n\" \"$src\""
@@ -57,7 +51,7 @@ while IFS= read -r ref; do
   [ -n "$ref" ] || continue
   [ -e "$P/$ref" ] || missing="$missing $ref"
 done < <(cd "$P" && cat CLAUDE.md AGENTS.md STATE.md DECISIONS.md QUESTIONS.md ROADMAP.md \
-           docs/procedures/*.md docs/plans/README.md docs/testing.md docs/codex-collaboration.md \
+           docs/procedures/*.md docs/plans/README.md docs/testing.md docs/cold-review.md \
          | tr -d '\r' | grep -oE '`[^` <>]+`' | tr -d '`' \
          | grep -E '(/|\.(md|json|jsonl|py)$)' | grep -vE '^(cd |-|git|npm|node|https?:)' \
          | grep -vE '[*$]|…|／' | sed -E 's/[#:].*$//' | grep -vE "$ALLOW" | sort -u)
@@ -104,13 +98,10 @@ P="$WORK/dry"; mkdir -p "$P"
 bash "$INSTALL" --project "$P" --dry-run > "$WORK/dry.out" 2>&1
 check "--dry-run 不寫任何檔" "[ -z \"\$(ls -A \"\$P\")\" ]"
 
-echo "== 說明文件不提已移除的檔 =="
-# SKILL.md 的步驟 4 要點名舊版的專案檔才能偵測，所以只查它有沒有提到已刪的 asset。
-stale="$(grep -lE 'NOTES\.md|claude-decisions\.json|DECISIONS\.jsonl' \
-  "$KIT/README.md" "$INSTALL" 2>/dev/null | tr '\n' ' ')"
-stale="$stale$(grep -lE 'SOP-README|SOP-retired|session-handoff|decisions-README|calculus-visualizer' \
-  "$KIT/README.md" "$KIT/skills/collab-kit-init/SKILL.md" "$INSTALL" 2>/dev/null | tr '\n' ' ')"
-check "README、SKILL.md、install.sh 不提已移除的檔（命中:${stale:- 無}）" "[ -z \"\$stale\" ]"
+echo "== kit 本體只依賴 Claude =="
+ext="$(grep -rilE 'chatgpt|codex|sonnet|calculus-visualizer|dreamcore' "$KIT/README.md" "$KIT/skills" 2>/dev/null | tr '\n' ' ')"
+check "README 與 skills/ 不提 ChatGPT、Codex、Sonnet 或私人專案名（命中:${ext:- 無}）" "[ -z \"\$ext\" ]"
+check "規則檔不含 push main 永遠放行" "! grep -q 'push \`main\` 永遠放行' \"\$RULES_SRC\""
 
 echo
 echo "$PASS passed, $FAIL failed"

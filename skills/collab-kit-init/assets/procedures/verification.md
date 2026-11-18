@@ -12,7 +12,7 @@
 - 執行測試前，先從專案的指令入口找出既有測試指令並原樣使用：npm／pnpm scripts、Makefile、justfile、Taskfile、`pyproject.toml`／`tox.ini`／noxfile、Cargo、Gradle／Maven、CI 設定檔、README 的測試段落
 - 不自己拼底層指令；找不到入口才用工具鏈預設指令
 - 回報與 commit message 記錄入口指令與實際輸出
-- 只跑涵蓋本次改動的測試。工作臺：`STATE.md`〈測試〉。遊戲本體：跑哪一層、何時跑慢速層、新測試放哪層照 `docs/testing.md`
+- 只跑涵蓋本次改動的測試。指令入口：`STATE.md`〈測試〉。跑哪一層、何時跑慢速層、新測試放哪層照 `docs/testing.md`
 
 ## 什麼時候寫測試、什麼時候不寫
 

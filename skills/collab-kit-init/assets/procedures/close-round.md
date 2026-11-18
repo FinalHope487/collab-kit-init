@@ -12,7 +12,7 @@
 
 ## 冷審查（只在這一批有程式碼改動時）
 
-一批任務的程式碼改動全部做完、push 前，對整批 diff 做一整輪完整冷審查，冷審查定義為「開啟一個乾淨的新session進行審查」，一次的定義為「送出冷審查+取回結果一次」，一整輪完整冷審查的定義為「重複送出冷審查+取回結果多次直到冷審查能夠宣稱『沒有任何直接阻擋後續開發的潛在問題』(「阻擋後續開發」與「建議項」的定義見 docs/codex-collaboration.md〈名詞定義〉)」。以上規定照 `docs/codex-collaboration.md`（優先 ChatGPT，then Codex，皆不可用時才退回唯讀 Sonnet subagent）；合約＝本輪的交接文件與本輪在 `DECISIONS.md` 新增的行。只動文件或測試的批次不審。報的每一條先對照程式碼確認，真缺陷照 `docs/procedures/verification.md`〈缺陷修復〉先寫重現測試再修
+一批任務的程式碼改動全部做完、push 前，對整批 diff 做一整輪完整冷審查，冷審查定義為「開啟一個乾淨的新session進行審查」，一次的定義為「送出冷審查+取回結果一次」，一整輪完整冷審查的定義為「重複送出冷審查+取回結果多次直到冷審查能夠宣稱『沒有任何直接阻擋後續開發的潛在問題』(「阻擋後續開發」與「建議項」的定義見 docs/cold-review.md〈名詞定義〉)」。以上規定照 `docs/cold-review.md`（審查者是全新的唯讀 subagent）；合約＝本輪的交接文件與本輪在 `DECISIONS.md` 新增的行。只動文件或測試的批次不審。報的每一條先對照程式碼確認，真缺陷照 `docs/procedures/verification.md`〈缺陷修復〉先寫重現測試再修
 
 ## 紀錄：條件成立才做
 
@@ -30,7 +30,7 @@
 
 ## push
 
-commit 到 `main` 並 `git push origin main`，不開分支、不開 PR：
+推到目前分支：`git push origin <目前分支>`。推 `main` 或預設分支前，先看 `docs/project-rules.md` 有沒有明寫放行；沒有就先問 user。不得 force push：
 
 - 推之前 `git status` 只有自己的改動，確認沒有他人未提交的半成品或衝突
 - 只推綠的：

@@ -25,7 +25,7 @@ usage() {
 其餘檔案缺就建，已存在不覆蓋：
   QUESTIONS.md / STATE.md / DECISIONS.md / docs/spec.md / docs/plans/README.md /
   ROADMAP.md / ROADMAP/later.md / ROADMAP/parked.md /
-  docs/project-rules.md / docs/testing.md / docs/codex-collaboration.md /
+  docs/project-rules.md / docs/testing.md / docs/cold-review.md /
   tools/outline.py；docs/procedures/ 每次整份覆寫，並寫 .collab-kit-version
 USAGE
 }
@@ -162,7 +162,7 @@ install_file "spec.md"              "docs/spec.md"
 install_file "plans-README.md"      "docs/plans/README.md"
 install_file "project-rules.md"      "docs/project-rules.md"
 install_file "testing.md"            "docs/testing.md"
-install_file "codex-collaboration.md" "docs/codex-collaboration.md"
+install_file "cold-review.md"         "docs/cold-review.md"
 install_file "outline.py"            "tools/outline.py"
 
 # ---- kit 擁有的程序檔：每次整份覆寫，並寫版本戳 ----
@@ -212,4 +212,4 @@ echo
 echo "== 腳本不做、接下來由你做的 =="
 echo "  步驟 2：STATE.md 還是模板時，照已知事實填目標、契約、下一步、測試指令"
 echo "  步驟 3：偵測本專案的驗證指令、服務埠等，寫進 docs/project-rules.md"
-echo "  步驟 4：留了 .bak，或專案有舊版 kit 的檔（SOP、handoff.md、docs/decisions/、ROADMAP 基線）時，照 references/upgrade-existing.md 搬內容"
+echo "  步驟 4：留了 .bak 時，把屬於本專案的內容搬進 docs/project-rules.md"

@@ -1,5 +1,4 @@
-預設用中文回答使用者。
-總是質疑 Agents.md 的內容，若你認為有更好的做事方法，先照 Agent.md 做，事後回報理由及改進建議。
+用 user 的語言回答。
 
 這份檔只放「不隨專案進度改變、而且要在需要之前就知道」的規則。專案現況在 `STATE.md`。做某件事的步驟在 `docs/procedures/`，條件成立才讀，見〈程序〉。
 
@@ -9,13 +8,14 @@
 
 未經 user 同意不得執行，也不得委派他人執行、不得用等價的低風險做法繞過：
 
-- 消耗付費額度：LLM API、另外啟動的付費 LLM CLI agent、計量收費 API、雲端算力，含訂閱額度。完全免費的本機測試、本 session 的 fork 與一般 subagent 不算，後兩者照 `docs/procedures/delegation.md`；Codex 的審查與 rescue 已獲長期同意，見 `docs/codex-collaboration.md`
+- 消耗付費額度：LLM API、另外啟動的付費 LLM CLI agent、計量收費 API、雲端算力，含訂閱額度。完全免費的本機測試、本 session 的 fork 與一般 subagent 不算，後兩者照 `docs/procedures/delegation.md`
 - 可能遺失資料：改資料格式且既有存檔讀不起來（見 `docs/procedures/data-format.md`）、建 migration／db push、刪除或覆蓋既有資料、批次改用戶資料、`git push --force`／`--force-with-lease`
 - 資安暴露：動加密演算法／金鑰處理／認證流程、改權限模型、新增或移除相依套件、deploy／改 production env
 - 不符合 `docs/procedures/delegation.md` 五項的委派
+- `git push` 到 `main` 或預設分支：除非 `docs/project-rules.md` 明寫放行。其他分支可直接推
 - 正規管道（既有工具、既有 CI）故障時，在未經同意下永久替換正式建置或佈署流程。純本地驗證／除錯用的臨時 scratch 腳本不在此限
 
-不確定是否不可逆、是否影響 production／既有資料時，當作要問。push `main` 永遠放行，直接推。
+不確定是否不可逆、是否影響 production／既有資料時，當作要問。
 
 ## 禁止，除非 user 主動要求
 
@@ -34,7 +34,7 @@
 - user 的決策與既有文件、程式事實矛盾，或照字面做會壞：自己選修法，修不好才擱置；回報指出矛盾（附 `檔案:行號`）
 - 任務前提有問題：自己處理
 - 偏離既有規格或推翻已拍板決策：在 `DECISIONS.md` 加一行
-- 委派、push `main`
+- 委派
 - 測試紅了：修成讓公開契約或系統不變量（Invariants）成立的最小修正；若因重構內部實作細節導致脆弱測試變紅，將測試改寫為只驗公開輸出
 
 選方案的偏好：
@@ -68,7 +68,7 @@
 | 要問 user；執行中碰到要問的事；user 答了 `QUESTIONS.md` 的題 | `docs/procedures/questions.md` |
 | 要改任何程式或測試 | `docs/procedures/verification.md` |
 | 改動後既有存檔可能讀不起來，或 Schema 變了 | `docs/procedures/data-format.md` |
-| 要把工作交給 fork、subagent、Codex 或 ChatGPT | `docs/procedures/delegation.md` |
+| 要把工作交給 fork 或 subagent | `docs/procedures/delegation.md` |
 | 動過檔案，要 commit 或 push | `docs/procedures/close-round.md` |
 | user 要求整理，或文件檢查腳本報錯 | `docs/procedures/chores.md` |
 

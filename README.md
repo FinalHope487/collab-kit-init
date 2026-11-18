@@ -35,7 +35,7 @@ kit 擁有，每次安裝整份覆寫：
 | `ROADMAP.md`、`ROADMAP/later.md`、`ROADMAP/parked.md` | 未完成的待辦。做完就刪 |
 | `docs/spec.md`、`docs/plans/README.md` | 公開契約與驗收；跨輪計畫的寫法 |
 | `docs/project-rules.md` | 本專案專屬的目錄、驗證指令、替身、服務埠、工具執行方式，以及專案自己的規則 |
-| `docs/testing.md`、`docs/codex-collaboration.md` | 測試分層與推送前驗證；冷審查、救援、授權與額度 |
+| `docs/testing.md`、`docs/cold-review.md` | 測試分層與推送前驗證；冷審查（用唯讀 subagent） |
 | `tools/outline.py` | 列出原始碼、`.css`、`.md` 各區塊的起訖行號；讀長檔時只讀要動的那一段 |
 
 用到才建、腳本不建：`docs/troubleshooting.md`（會重複出現的症狀與查法）、`docs/environment.md`（外部事實，從 `assets/environment.md` 複製）、`docs/specs/`（子規格）。
@@ -53,10 +53,9 @@ skills/collab-kit-init/
 ├── assets/ROADMAP-parked.md        → ROADMAP/parked.md
 ├── assets/spec.md                  → docs/spec.md
 ├── assets/plans-README.md          → docs/plans/README.md
-├── assets/project-rules.md、testing.md、codex-collaboration.md → docs/
+├── assets/project-rules.md、testing.md、cold-review.md → docs/
 ├── assets/outline.py               → tools/outline.py
-├── assets/environment.md           需要時手動複製成 docs/environment.md
-└── references/upgrade-existing.md  專案已有舊版 kit 檔案時怎麼搬
+└── assets/environment.md           需要時手動複製成 docs/environment.md
 ```
 
 ## 改規則的流程
@@ -80,7 +79,7 @@ bash tests/test_install.sh
 
 ## 安裝
 
-複製 `skills/collab-kit-init/` 整個目錄（含 `assets/`、`scripts/` 與 `references/`）到目標專案的
+複製 `skills/collab-kit-init/` 整個目錄（含 `assets/` 與 `scripts/`）到目標專案的
 `.claude/skills/` 或 `skills/` 下，再手動觸發這個 skill。
 完整步驟見 [`skills/collab-kit-init/SKILL.md`](skills/collab-kit-init/SKILL.md)。
 
