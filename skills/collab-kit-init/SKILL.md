@@ -40,7 +40,7 @@ bash <本 skill 目錄>/scripts/install.sh --project <專案根目錄> [--dry-ru
 ```
 
 - 規則一律寫進 `AGENTS.md`，內容不同時舊檔留成 `AGENTS.md.bak`
-- 預檢：`CLAUDE.md` 或 `AGENTS.md` 是 symlink、兩者是同一個檔（硬連結）、任何要寫的檔是目錄或斷掉的 symlink 時，腳本中止（結束碼 3），不寫任何東西（含 `--dry-run`）。把問題清單轉給 user 處理。`.bak` 已存在時不覆蓋，改用 `.bak.1`、`.bak.2`
+- 預檢：`CLAUDE.md` 或 `AGENTS.md` 是 symlink、兩者是同一個檔（硬連結）、任何要寫的檔是目錄或斷掉的 symlink、任何要寫的路徑經過 symlink 目錄（如 `docs`、`tools/hooks`、`.claude`）、`docs/procedures/` 的檔或 `.collab-kit-version` 是 symlink 時，腳本中止（結束碼 3），不寫任何東西（含 `--dry-run`）。把問題清單轉給 user 處理。`.bak` 已存在時不覆蓋，改用 `.bak.1`、`.bak.2`
 - `CLAUDE.md` 不存在：新建成 `@AGENTS.md` 與 `@STATE.md` 兩行
 - `CLAUDE.md` 已有單獨一行 `@<路徑>` 匯入：保留原內容，只補缺的 `@AGENTS.md`、`@STATE.md`。原本匯入的其他檔不動；其中若有舊版規則全文，回報會提醒手動移除
 - `CLAUDE.md` 沒有任何 `@` 匯入（規則直接寫在裡面）：換成兩行匯入，舊檔留成 `CLAUDE.md.bak`

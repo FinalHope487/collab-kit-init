@@ -29,7 +29,9 @@ usage() {
                     （force push 與密鑰檔仍擋）
 
 規則檔：一律寫進 AGENTS.md（內容不同時舊檔留成 AGENTS.md.bak；.bak 已存在就依序用 .bak.1、.bak.2，不覆蓋）。
-預檢：CLAUDE.md 或 AGENTS.md 是 symlink、兩者是同一個檔、任何要寫的檔是目錄或斷掉的 symlink 時，中止（結束碼 3），不寫任何東西（含 --dry-run）。
+預檢：CLAUDE.md 或 AGENTS.md 是 symlink、兩者是同一個檔、任何要寫的檔是目錄或斷掉的 symlink、
+任何要寫的路徑經過 symlink 目錄（docs、tools/hooks、.claude 等，寫入會落到專案外）、
+docs/procedures/ 的檔案或 .collab-kit-version 是 symlink（整份覆寫會改到連結的另一端）時，中止（結束碼 3），不寫任何東西（含 --dry-run）。
 CLAUDE.md：不存在就新建成 `@AGENTS.md` 與 `@STATE.md` 兩行；已有 `@` 匯入就保留原內容，只補缺的那幾行；
 沒有任何 `@` 匯入（規則直接寫在裡面）就換成兩行匯入，舊檔留成 CLAUDE.md.bak。
 docs/procedures/ 每次整份覆寫。
@@ -77,6 +79,36 @@ for f in $PREFLIGHT_FILES; do
   if [ -L "$PROJECT/$f" ] && [ ! -e "$PROJECT/$f" ]; then problem "$f 是斷掉的 symlink"
   elif [ -e "$PROJECT/$f" ] && [ ! -f "$PROJECT/$f" ]; then problem "$f 存在但不是一般檔案（可能是目錄）"; fi
 done
+# 路徑上任何一層父目錄是 symlink，檔案就會寫到連結的另一端（可能在專案外）。每個要寫的路徑都逐層檢查，同一層只報一次。
+SYMLINK_DIRS_SEEN=" "
+check_parent_chain() {  # $1=專案相對路徑
+  local dir rest part cum=""
+  dir="$(dirname "$1")"
+  [ "$dir" != "." ] || return 0
+  rest="$dir"
+  while [ -n "$rest" ]; do
+    part="${rest%%/*}"
+    if [ "$rest" = "$part" ]; then rest=""; else rest="${rest#*/}"; fi
+    cum="${cum:+$cum/}$part"
+    if [ -L "$PROJECT/$cum" ]; then
+      case "$SYMLINK_DIRS_SEEN" in
+        *" $cum "*) ;;
+        *) SYMLINK_DIRS_SEEN="$SYMLINK_DIRS_SEEN$cum "
+           problem "$cum 是 symlink（→ $(readlink "$PROJECT/$cum")）：底下的檔案會寫到連結的另一端，可能在專案外" ;;
+      esac
+    fi
+  done
+}
+for f in $PREFLIGHT_FILES; do check_parent_chain "$f"; done
+# 整份覆寫的檔（程序檔、版本戳）若是指向既有檔的 symlink，覆寫會改到連結的另一端。斷掉的 symlink 上面已報過。
+for f in $PREFLIGHT_FILES; do
+  case "$f" in
+    docs/procedures/*|.collab-kit-version)
+      if [ -L "$PROJECT/$f" ] && [ -e "$PROJECT/$f" ]; then
+        problem "$f 是 symlink（→ $(readlink "$PROJECT/$f")）：整份覆寫會改到連結的另一端"
+      fi ;;
+  esac
+done
 if [ "$WITH_HOOKS" -eq 1 ]; then
   if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)' 2>/dev/null; then
     problem "--with-hooks 需要 python3（3.7 以上）：用來合併設定檔與執行 hook"
@@ -89,6 +121,7 @@ if [ "$WITH_HOOKS" -eq 1 ]; then
   for f in tools/hooks/collab_hook.py tools/hooks/collab_adapters.py tools/hooks/doc_check.py .claude/settings.json .codex/hooks.json; do
     if [ -L "$PROJECT/$f" ]; then problem "$f 是 symlink：腳本不寫入設定檔或 hook 腳本的連結"
     elif [ -e "$PROJECT/$f" ] && [ ! -f "$PROJECT/$f" ]; then problem "$f 存在但不是一般檔案"; fi
+    check_parent_chain "$f"
   done
   GIT_TOP="$(git -C "$PROJECT" rev-parse --show-toplevel 2>/dev/null || true)"
   if [ -z "$GIT_TOP" ]; then

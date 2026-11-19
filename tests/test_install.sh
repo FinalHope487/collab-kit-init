@@ -192,6 +192,63 @@ printf 'real\n' > "$P/CLAUDE.md"; ln -s CLAUDE.md "$P/AGENTS.md"
 bash "$INSTALL" --project "$P" > "$WORK/asym.out" 2>&1; RC=$?
 check "AGENTS.md 是 symlink 時結束碼 3，CLAUDE.md 原樣" "[ $RC -eq 3 ] && [ \"\$(cat \"\$P/CLAUDE.md\")\" = real ]"
 
+echo "== 預檢：symlink 目錄與覆寫目標（寫入不得落到專案外或連結另一端）=="
+# 建 symlink 目錄：先用 ln -s；沒有權限的 Windows 退回 NTFS junction（Git Bash 同樣視為 symlink 目錄）。
+make_dir_link() {  # $1=連結路徑 $2=目標目錄
+  ln -s "$2" "$1" 2>/dev/null && [ -L "$1" ] && return 0
+  rm -rf "$1" 2>/dev/null
+  command -v cmd >/dev/null 2>&1 && cmd //c "mklink /J $(cygpath -w "$1") $(cygpath -w "$2")" >/dev/null 2>&1 && [ -L "$1" ]
+}
+make_file_link() { ln -s "$2" "$1" 2>/dev/null && [ -L "$1" ]; }
+tree_hash() { (cd "$1" && find . -path ./.git -prune -o -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum); }
+for D in docs docs/procedures; do
+  OUT="$WORK/out-$(echo "$D" | tr / _)"; P="$WORK/dirlink-$(echo "$D" | tr / _)"; mkdir -p "$OUT" "$P"; git -C "$P" init -q
+  [ "$D" = docs ] || mkdir -p "$P/docs"
+  if make_dir_link "$P/$D" "$OUT"; then
+    before="$(tree_hash "$OUT")"
+    bash "$INSTALL" --project "$P" > "$WORK/dirlink.out" 2>&1; RC=$?
+    check "$D 是 symlink 目錄時結束碼 3" "[ $RC -eq 3 ]"
+    check "$D 是 symlink 目錄時訊息指名 $D" "grep -q \"$D 是 symlink\" \"\$WORK/dirlink.out\""
+    check "$D 是 symlink 目錄時沒有任何東西寫到連結另一端" "[ -z \"\$(ls -A \"\$OUT\")\" ] && [ \"\$before\" = \"\$(tree_hash \"\$OUT\")\" ]"
+    check "$D 是 symlink 目錄時沒有裝一半（無 AGENTS.md）" "[ ! -e \"\$P/AGENTS.md\" ]"
+    bash "$INSTALL" --project "$P" --dry-run > "$WORK/dirlink2.out" 2>&1; RC=$?
+    check "$D 是 symlink 目錄時 --dry-run 也中止" "[ $RC -eq 3 ]"
+  else
+    echo "  skip  $D symlink 目錄（這個環境建不出 symlink 或 junction）"
+  fi
+done
+for D in .claude .codex tools/hooks; do
+  OUT="$WORK/out-hk-$(echo "$D" | tr / _)"; P="$WORK/hooklink-$(echo "$D" | tr / _)"; mkdir -p "$OUT" "$P"; git -C "$P" init -q
+  [ "$D" != tools/hooks ] || mkdir -p "$P/tools"
+  if make_dir_link "$P/$D" "$OUT"; then
+    bash "$INSTALL" --project "$P" --with-hooks > "$WORK/hooklink.out" 2>&1; RC=$?
+    check "--with-hooks：$D 是 symlink 目錄時結束碼 3" "[ $RC -eq 3 ]"
+    check "--with-hooks：$D 是 symlink 目錄時沒有任何東西寫到連結另一端" "[ -z \"\$(ls -A \"\$OUT\")\" ]"
+    check "--with-hooks：$D 是 symlink 目錄時沒有裝一半（無 AGENTS.md、無 pre-commit）" "[ ! -e \"\$P/AGENTS.md\" ] && [ ! -e \"\$P/.git/hooks/pre-commit\" ]"
+  else
+    echo "  skip  $D symlink 目錄（這個環境建不出 symlink 或 junction）"
+  fi
+done
+P="$WORK/okdirs"; mkdir -p "$P/docs"; git -C "$P" init -q
+bash "$INSTALL" --project "$P" > "$WORK/okdirs.out" 2>&1; RC=$?
+check "docs 是一般目錄時照常安裝（預檢沒有誤擋）" "[ $RC -eq 0 ] && [ -f \"\$P/docs/procedures/questions.md\" ]"
+EXT="$WORK/ext-files"; mkdir -p "$EXT"; printf 'unrelated\n' > "$EXT/target.txt"
+P="$WORK/verlink"; mkdir -p "$P"; git -C "$P" init -q
+if make_file_link "$P/.collab-kit-version" "$EXT/target.txt"; then
+  bash "$INSTALL" --project "$P" > "$WORK/verlink.out" 2>&1; RC=$?
+  check ".collab-kit-version 是指向既有檔的 symlink 時結束碼 3，目標檔原樣" "[ $RC -eq 3 ] && [ \"\$(cat \"\$EXT/target.txt\")\" = unrelated ]"
+  check ".collab-kit-version 是 symlink 時沒有裝一半" "[ ! -e \"\$P/AGENTS.md\" ]"
+else
+  echo "  skip  .collab-kit-version symlink（這個環境建不出檔案 symlink）"
+fi
+P="$WORK/proclink"; mkdir -p "$P/docs/procedures"; git -C "$P" init -q
+if make_file_link "$P/docs/procedures/questions.md" "$EXT/target.txt"; then
+  bash "$INSTALL" --project "$P" > "$WORK/proclink.out" 2>&1; RC=$?
+  check "程序檔是指向既有檔的 symlink 時結束碼 3，目標檔原樣" "[ $RC -eq 3 ] && [ \"\$(cat \"\$EXT/target.txt\")\" = unrelated ]"
+else
+  echo "  skip  程序檔 symlink（這個環境建不出檔案 symlink）"
+fi
+
 echo "== --dry-run 對既有專案不寫任何東西 =="
 P="$WORK/dryold"; mkdir -p "$P/docs/procedures"; git -C "$P" init -q
 printf '舊規則\n' > "$P/AGENTS.md"; printf '規則在內文\n@docs/x.md\n' > "$P/CLAUDE.md"
