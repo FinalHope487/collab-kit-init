@@ -354,6 +354,56 @@ class Merge(unittest.TestCase):
         self.assertEqual(open(t + ".bak").read(), "keep")
         self.assertEqual(json.load(open(t + ".bak.1")), {"x": 1})
 
+    def _symlink_or_skip(self, target, link):
+        try:
+            os.symlink(target, link)
+        except (OSError, NotImplementedError, AttributeError):
+            self.skipTest("這個環境建不出 symlink")
+
+    def test_temp_name_already_taken_is_not_clobbered(self):
+        # 舊版固定用 <target>.collab-tmp 且截斷開啟：該名稱若已被別的檔佔用，內容會被蓋掉
+        t = os.path.join(self.dir, "s.json")
+        json.dump({"x": 1}, open(t, "w"))
+        taken = t + ".collab-tmp"
+        open(taken, "w").write("precious")
+        done = self.merge(t, "claude", "apply")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(open(taken).read(), "precious")
+        self.assertIn("hooks", json.load(open(t)))
+        self.assertEqual(json.load(open(t + ".bak")), {"x": 1})
+        leftovers = [n for n in os.listdir(self.dir) if "collab-tmp" in n and n != "s.json.collab-tmp"]
+        self.assertEqual(leftovers, [])
+
+    def test_temp_name_that_is_a_symlink_does_not_write_through(self):
+        t = os.path.join(self.dir, "s.json")
+        json.dump({"x": 1}, open(t, "w"))
+        outside = os.path.join(self.dir, "outside.txt")
+        open(outside, "w").write("outside")
+        self._symlink_or_skip(outside, t + ".collab-tmp")
+        done = self.merge(t, "claude", "apply")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(open(outside).read(), "outside")
+        self.assertIn("hooks", json.load(open(t)))
+
+    def test_dangling_symlink_bak_counts_as_taken(self):
+        t = os.path.join(self.dir, "s.json")
+        json.dump({"x": 1}, open(t, "w"))
+        gone = os.path.join(self.dir, "gone.txt")
+        self._symlink_or_skip(gone, t + ".bak")
+        self.merge(t, "claude", "apply")
+        self.assertFalse(os.path.exists(gone))  # 沒有寫穿到連結目標
+        self.assertEqual(os.readlink(t + ".bak"), gone)
+        self.assertEqual(json.load(open(t + ".bak.1")), {"x": 1})
+
+    def test_merged_file_keeps_original_permissions(self):
+        if os.name == "nt":
+            self.skipTest("Windows 沒有 POSIX 權限位")
+        t = os.path.join(self.dir, "s.json")
+        json.dump({"x": 1}, open(t, "w"))
+        os.chmod(t, 0o640)
+        self.merge(t, "claude", "apply")
+        self.assertEqual(os.stat(t).st_mode & 0o777, 0o640)
+
     def test_allow_flag_added_and_removed_on_rerun(self):
         t = os.path.join(self.dir, "s.json")
         self.merge(t, "claude", "apply", "--allow-push-main")

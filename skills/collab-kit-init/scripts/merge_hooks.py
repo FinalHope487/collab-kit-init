@@ -18,6 +18,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 
 MARK = "tools/hooks/collab_hook.py"
 
@@ -102,11 +103,12 @@ def load(target):
 
 
 def next_bak(path):
+    # lexists：斷掉的 symlink 也算已佔用，否則 copy2 會寫穿到連結的另一端
     base = path + ".bak"
-    if not os.path.exists(base):
+    if not os.path.lexists(base):
         return base
     n = 1
-    while os.path.exists("%s.%d" % (base, n)):
+    while os.path.lexists("%s.%d" % (base, n)):
         n += 1
     return "%s.%d" % (base, n)
 
@@ -158,11 +160,18 @@ def main(argv):
         bak = next_bak(target)
         shutil.copy2(target, bak)
     os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
-    tmp = target + ".collab-tmp"
-    with open(tmp, "w", encoding="utf-8") as handle:
-        json.dump(result, handle, ensure_ascii=False, indent=2)
-        handle.write("\n")
-    os.replace(tmp, target)
+    # 暫存檔用 mkstemp（O_EXCL、名稱唯一）：固定名稱會截斷或寫穿任何已佔用該名稱的檔案或 symlink
+    fd, tmp = tempfile.mkstemp(prefix=os.path.basename(target) + ".collab-tmp.", dir=os.path.dirname(target) or ".")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(result, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+        os.chmod(tmp, (os.stat(target).st_mode & 0o777) if existed else 0o644)  # mkstemp 預設 0600，維持原權限
+        os.replace(tmp, target)
+    except BaseException:
+        if os.path.lexists(tmp):
+            os.unlink(tmp)
+        raise
     print(("updated\t" + bak) if existed else "created")
     return 0
 

@@ -205,10 +205,11 @@ mark_touched() { TOUCHED="${TOUCHED}$1
 "; }
 same_text() { cmp -s <(tr -d '\r' < "$1") <(tr -d '\r' < "$2"); }
 # 已存在的 .bak 不覆蓋：它可能是使用者還沒搬走內容的舊檔。依序用 .bak、.bak.1、.bak.2……
+# 斷掉的 symlink 也算已佔用（-e 對它是 false，cp 會寫穿到連結的另一端）
 next_bak() {
   local base="$1.bak" n=1
-  if [ ! -e "$base" ]; then printf '%s' "$base"; return; fi
-  while [ -e "$base.$n" ]; do n=$((n + 1)); done
+  if [ ! -e "$base" ] && [ ! -L "$base" ]; then printf '%s' "$base"; return; fi
+  while [ -e "$base.$n" ] || [ -L "$base.$n" ]; do n=$((n + 1)); done
   printf '%s' "$base.$n"
 }
 

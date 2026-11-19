@@ -144,6 +144,14 @@ printf 'v2\n' > "$P/AGENTS.md"
 bash "$INSTALL" --project "$P" > "$WORK/bak2.out" 2>&1
 check "既有 AGENTS.md.bak 不被覆寫（仍是 v1）" "grep -qx 'v1' \"\$P/AGENTS.md.bak\""
 check "第二份舊檔留成 AGENTS.md.bak.1（v2）" "grep -qx 'v2' \"\$P/AGENTS.md.bak.1\""
+P="$WORK/bakdangle"; mkdir -p "$P"; git -C "$P" init -q
+printf 'v1\n' > "$P/AGENTS.md"
+if ln -s "$WORK/bakdangle-gone.txt" "$P/AGENTS.md.bak" 2>/dev/null && [ -L "$P/AGENTS.md.bak" ]; then
+  bash "$INSTALL" --project "$P" > "$WORK/bakdangle.out" 2>&1
+  check "斷掉的 symlink 佔著 .bak 名稱：不寫穿，舊檔改留成 .bak.1" "[ ! -e \"$WORK/bakdangle-gone.txt\" ] && grep -qx 'v1' \"\$P/AGENTS.md.bak.1\""
+else
+  echo "  skip  斷掉的 .bak symlink（這個環境建不出檔案 symlink）"
+fi
 P="$WORK/dry2"; mkdir -p "$P"
 bash "$INSTALL" --project "$P" --dry-run > "$WORK/dry2.out" 2>&1
 check "CLAUDE.md 不存在時 --dry-run 印『待建立』" "grep -q '待建立 CLAUDE.md' \"\$WORK/dry2.out\""
